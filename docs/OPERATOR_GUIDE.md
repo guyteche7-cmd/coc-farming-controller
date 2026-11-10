@@ -34,13 +34,18 @@ An advanced, computer-vision and AI-powered autonomous farming bot for **Clash o
 
 ## 🚀 Quick Installation & Setup
 
+One-click startup scripts are located **directly in the main program folder**:
+- **`run_bot.bat`** for Windows users
+- **`run_bot.sh`** for macOS & Linux users
+
 ### 🪟 Windows (1-Click Launch)
-1. Double-click **`run_bot.bat`**.
-2. It automatically detects Python, installs missing dependencies on first launch, and opens the dashboard!
+1. Navigate to the main program folder.
+2. Double-click **`run_bot.bat`**.
+3. It automatically detects Python, installs missing dependencies on first launch, and opens the dashboard!
 
 ### 🍎 macOS (1-Click Launch)
-1. Open Terminal in the project directory.
-2. Run:
+1. Open Terminal in the main program folder.
+2. Run the shell script:
 ```bash
 chmod +x run_bot.sh
 ./run_bot.sh

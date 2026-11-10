@@ -110,28 +110,45 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start Guide (One-Click Launchers)
 
-### 🪟 Windows (1-Click Launch)
-Simply double-click:
+The repository provides zero-setup, one-click launcher scripts located **directly in the main program folder** (`coc-farming-controller/`):
+
+| Operating System | Launcher File | Location | Launch Command / Action |
+| :--- | :--- | :--- | :--- |
+| **🪟 Windows** | **`run_bot.bat`** | Main Program Folder | Simply **double-click `run_bot.bat`** |
+| **🍎 macOS / Linux** | **`run_bot.sh`** | Main Program Folder | Run **`chmod +x run_bot.sh && ./run_bot.sh`** |
+
+### 🪟 Windows Launch
+In the main folder, simply double-click:
 ```bat
 run_bot.bat
 ```
-`run_bot.bat` will automatically verify your Python environment, install any missing dependencies on first launch, and launch the GUI dashboard immediately!
+`run_bot.bat` automatically verifies your Python environment, installs any missing dependencies from `requirements.txt` on first run, and launches the GUI dashboard immediately!
 
 ---
 
-### 🍎 macOS (1-Click Launch)
-1. Open **Terminal** in the cloned repository folder.
-2. Make the launcher executable and run:
+### 🍎 macOS Launch
+1. Open **Terminal** in the main project folder.
+2. Run the included `.sh` launcher script:
 ```bash
 chmod +x run_bot.sh
 ./run_bot.sh
 ```
-`run_bot.sh` will auto-detect Python 3, install dependencies via `pip`, and launch the controller!
+`run_bot.sh` automatically detects Python 3, installs dependencies via `pip`, configures environment optimizations, and opens the controller.
 
-> **macOS Permissions Note**: On macOS, grant **Accessibility** and **Screen Recording** permissions to your Terminal (or iTerm / VSCode) under:
-> `System Settings` -> `Privacy & Security` -> `Screen Recording` & `Accessibility`.
+> [!NOTE]
+> **macOS Permissions**: Ensure Terminal / iTerm has **Accessibility** and **Screen Recording** permissions granted in macOS under:
+> `System Settings` ➜ `Privacy & Security` ➜ `Screen Recording` & `Accessibility`.
+
+---
+
+### 💻 Manual Launch (Alternative)
+If you prefer running directly from terminal or command prompt:
+```bash
+pip install -r requirements.txt
+python -m src.app.main
+```
 
 ---
 
