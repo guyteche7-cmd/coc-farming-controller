@@ -110,44 +110,69 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start Guide (One-Click Launchers)
+## 📥 Installation & Setup Guide
 
-The repository provides zero-setup, one-click launcher scripts located **directly in the main program folder** (`coc-farming-controller/`):
-
-| Operating System | Launcher File | Location | Launch Command / Action |
-| :--- | :--- | :--- | :--- |
-| **🪟 Windows** | **`run_bot.bat`** | Main Program Folder | Simply **double-click `run_bot.bat`** |
-| **🍎 macOS / Linux** | **`run_bot.sh`** | Main Program Folder | Run **`chmod +x run_bot.sh && ./run_bot.sh`** |
-
-### 🪟 Windows Launch
-In the main folder, simply double-click:
-```bat
-run_bot.bat
+### Step 1: Clone the Repository
+Open your terminal (macOS/Linux) or Command Prompt / PowerShell (Windows) and clone the repository:
+```bash
+git clone https://github.com/guyteche7-cmd/coc-farming-controller.git
+cd coc-farming-controller
 ```
-`run_bot.bat` automatically verifies your Python environment, installs any missing dependencies from `requirements.txt` on first run, and launches the GUI dashboard immediately!
 
 ---
 
-### 🍎 macOS Launch
-1. Open **Terminal** in the main project folder.
-2. Run the included `.sh` launcher script:
+### Step 2: Choose Your Launch Method
+
+#### ⚡ Option 1: Automatic 1-Click Launchers (Zero Setup)
+Pre-configured scripts located **directly in the main program folder** (`coc-farming-controller/`) automatically detect Python, install missing dependencies from `requirements.txt` on first run, and launch the dashboard:
+
+| Operating System | Launcher Script | Location | Launch Action |
+| :--- | :--- | :--- | :--- |
+| **🪟 Windows** | **`run_bot.bat`** | Main Program Folder | Simply **double-click `run_bot.bat`** |
+| **🍎 macOS / Linux** | **`run_bot.sh`** | Main Program Folder | Run: `chmod +x run_bot.sh && ./run_bot.sh` |
+
+- **Windows Users**: In the main folder, simply double-click **`run_bot.bat`**.
+- **macOS Users**: In Terminal, run:
 ```bash
 chmod +x run_bot.sh
 ./run_bot.sh
 ```
-`run_bot.sh` automatically detects Python 3, installs dependencies via `pip`, configures environment optimizations, and opens the controller.
 
 > [!NOTE]
-> **macOS Permissions**: Ensure Terminal / iTerm has **Accessibility** and **Screen Recording** permissions granted in macOS under:
-> `System Settings` ➜ `Privacy & Security` ➜ `Screen Recording` & `Accessibility`.
+> **macOS Permissions (BlueStacks Users)**:  
+> On macOS, grant **Accessibility** and **Screen Recording** permissions to your Terminal (or iTerm / VSCode) under:  
+> System Settings ➜ Privacy & Security ➜ Screen Recording & Accessibility.
 
 ---
 
-### 💻 Manual Launch (Alternative)
-If you prefer running directly from terminal or command prompt:
+#### 🛠️ Option 2: Manual Installation & Virtual Environment
+If you prefer managing dependencies manually or using a virtual environment:
+
+1. **(Optional) Create and activate a virtual environment:**
+   - **Windows:**
+```powershell
+python -m venv venv
+venv\Scripts\activate
+```
+   - **macOS / Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+2. **Install all dependencies:**
 ```bash
 pip install -r requirements.txt
+```
+
+3. **Run the controller:**
+   - **Windows:**
+```powershell
 python -m src.app.main
+```
+   - **macOS / Linux:**
+```bash
+python3 -m src.app.main
 ```
 
 ---
