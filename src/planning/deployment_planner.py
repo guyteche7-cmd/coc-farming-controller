@@ -133,6 +133,11 @@ class DeploymentPlanner:
         if frame_bgr is not None and frame_bgr.size > 0:
             h, w = frame_bgr.shape[:2]
             for idx, nx in enumerate(self.SLOT_X_COORDINATES):
+                # Slot 0 (first unit card) is ALWAYS occupied in active combat
+                if idx == 0:
+                    occupied.append(idx)
+                    continue
+
                 cx = int(nx * w)
                 x1, x2 = max(0, int((nx - 0.030) * w)), min(w, int((nx + 0.030) * w))
                 y1, y2 = max(0, int(0.835 * h)), min(h, int(0.975 * h))
@@ -143,9 +148,10 @@ class DeploymentPlanner:
                 std_v = float(np.std(crop))
                 b_mean = float(np.mean(crop[:, :, 0]))
                 g_mean = float(np.mean(crop[:, :, 1]))
-                # Empty slots in Clash of Clans have transparent dashed borders where base grass shines through
-                is_grass = (g_mean - b_mean > 16.0)
-                if not is_grass and (mean_v > 75.0 or (mean_v > 55.0 and std_v > 20.0)):
+                # Empty slots in Clash of Clans have transparent dashed borders where base scenery shines through
+                is_grass = (g_mean - b_mean > 20.0 and mean_v < 60.0)
+                is_card = not is_grass and (mean_v >= 70.0 or (mean_v >= 50.0 and std_v >= 25.0))
+                if is_card:
                     occupied.append(idx)
 
         # Take contiguous sequence of occupied slots starting from 0
@@ -156,9 +162,14 @@ class DeploymentPlanner:
             else:
                 break
 
+        expected_heroes = configured_hero_count if configured_hero_count > 0 else 4
+        expected_siege = 1 if deploy_siege else 0
+
         total_occ = len(contiguous)
         if total_occ == 0:
-            total_occ = 6 if configured_hero_count == 2 else 7
+            # Fallback to standard army ribbon size (2 troops + 1 siege + 4 heroes + 1 spell = 8 slots)
+            fallback_slots = max(8, 2 + expected_siege + expected_heroes + 1)
+            total_occ = 6 if configured_hero_count == 2 else fallback_slots
             contiguous = list(range(total_occ))
 
         # 2. Read quantity badge for each contiguous slot
@@ -212,8 +223,13 @@ class DeploymentPlanner:
             middle_slots = [s for s in range(first_non_troop, last_middle + 1)]
 
             if not spell_slots and middle_slots:
-                if len(middle_slots) > expected_heroes + expected_siege:
-                    spell_slots = [middle_slots.pop()]
+                while len(middle_slots) > (expected_heroes + expected_siege):
+                    spell_slots.insert(0, middle_slots.pop())
+
+            # In Clash of Clans, there are at most 1 siege machine and 4 heroes (max 5 middle slots).
+            # Any remaining excess slots at the front of middle_slots are additional troop slots.
+            while len(middle_slots) > (expected_heroes + expected_siege):
+                troop_slots.append(middle_slots.pop(0))
 
             siege_slot = None
             hero_slots = []
@@ -224,9 +240,14 @@ class DeploymentPlanner:
                 hero_slots = list(middle_slots)
 
             if configured_hero_count > 0 and len(hero_slots) > configured_hero_count:
+                # Excess hero slots beyond configured count are trailing spells
+                excess = hero_slots[configured_hero_count:]
                 hero_slots = hero_slots[:configured_hero_count]
+                for ex in excess:
+                    if ex not in spell_slots:
+                        spell_slots.append(ex)
 
-        # Trailing unassigned slots are spells
+        # Trailing unassigned slots are spells (In Clash of Clans, spells always trail heroes)
         assigned = set(troop_slots)
         if siege_slot is not None:
             assigned.add(siege_slot)
@@ -237,9 +258,17 @@ class DeploymentPlanner:
 
         unassigned = [s for s in contiguous if s not in assigned]
         if unassigned:
+            right_boundary = (hero_slots[-1] if hero_slots else (siege_slot if siege_slot is not None else (troop_slots[-1] if troop_slots else 0)))
             for u in unassigned:
-                if u > (hero_slots[-1] if hero_slots else (siege_slot if siege_slot is not None else troop_slots[-1])):
+                if u > right_boundary and u not in spell_slots:
                     spell_slots.append(u)
+
+        # Safety guarantee: If total occupied slots > heroes + siege + troops, trailing slots MUST be spells
+        min_prefix = len(troop_slots) + (1 if siege_slot is not None else 0) + len(hero_slots)
+        if not spell_slots and total_occ > min_prefix:
+            for s in range(min_prefix, total_occ):
+                if s not in spell_slots:
+                    spell_slots.append(s)
 
         logger.info(
             f"[ARMY LAYOUT] Detected {total_occ} occupied slots -> "
@@ -306,10 +335,10 @@ class DeploymentPlanner:
         h, w = frame_bgr.shape[:2]
         nx = self.SLOT_X_COORDINATES[slot_idx]
         # Precise top-right badge region of the card
-        x1 = max(0, int((nx - 0.005) * w))
-        x2 = min(w, int((nx + 0.040) * w))
-        y1 = max(0, int(0.825 * h))
-        y2 = min(h, int(0.875 * h))
+        x1 = max(0, round((nx - 0.0107) * w))
+        x2 = min(w, round((nx + 0.0430) * w))
+        y1 = max(0, round(0.8174 * h))
+        y2 = min(h, round(0.8783 * h))
 
         crop = frame_bgr[y1:y2, x1:x2]
         if crop.size == 0:
@@ -318,17 +347,16 @@ class DeploymentPlanner:
         try:
             from src.vision.ocr_engine import get_shared_paddle_ocr_engine
             ocr = get_shared_paddle_ocr_engine()
-            # Upscale 3x for small text recognition
-            scaled = cv2.resize(crop, (0, 0), fx=3.0, fy=3.0, interpolation=cv2.INTER_CUBIC)
-            gray = cv2.cvtColor(scaled, cv2.COLOR_BGR2GRAY)
+            # Standardize to 250x160 with 60px black border padding for optimal DBNet text contour detection
+            scaled = cv2.resize(crop, (250, 160), interpolation=cv2.INTER_CUBIC)
+            padded = cv2.copyMakeBorder(scaled, 60, 60, 60, 60, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+            gray = cv2.cvtColor(padded, cv2.COLOR_BGR2GRAY)
 
-            candidates = []
+            candidates = [padded]
             for th in [170, 150, 190]:
                 _, thresh = cv2.threshold(gray, th, 255, cv2.THRESH_BINARY)
-                # Ensure 3-channel for all OCR backends
                 thresh_bgr = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
                 candidates.append(thresh_bgr)
-            candidates.append(scaled)
 
             for cand in candidates:
                 # Use read_words to bypass button heuristic fallbacks ("end battle", "next")
