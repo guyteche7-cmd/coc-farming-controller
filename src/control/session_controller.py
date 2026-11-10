@@ -5,8 +5,12 @@ tracks high-level attack counters, provides audio/voice/toast feedback, and inte
 """
 
 from __future__ import annotations
+import sys
 import time
-import ctypes
+if sys.platform == "win32":
+    import ctypes
+else:
+    ctypes = None
 import threading
 import logging
 import uuid
@@ -75,9 +79,55 @@ class SessionController:
         self._setup_hotkeys()
 
     def _setup_hotkeys(self) -> None:
-        """Starts hardware GetAsyncKeyState polling thread for 100% reliable global hotkeys."""
-        threading.Thread(target=self._hardware_hotkey_poller, daemon=True).start()
-        logger.info("Registered global hardware hotkeys: [F7] Bind Window, [F8] Start/Stop, [F9] Pause/Resume, [F10] Emergency Stop")
+        """Starts hotkey listener thread (Win32 GetAsyncKeyState on Windows, pynput on macOS/Linux)."""
+        if sys.platform == "win32" and ctypes and hasattr(ctypes, "windll"):
+            threading.Thread(target=self._hardware_hotkey_poller, daemon=True).start()
+            logger.info("Registered global hardware hotkeys: [F7] Bind Window, [F8] Start/Stop, [F9] Pause/Resume, [F10] Emergency Stop")
+        else:
+            threading.Thread(target=self._pynput_hotkey_listener, daemon=True).start()
+
+    def _pynput_hotkey_listener(self) -> None:
+        """Cross-platform global hotkey listener for macOS and Linux via pynput."""
+        try:
+            from pynput import keyboard
+            def on_press(key):
+                if not self._hotkey_listener_active:
+                    return False
+                try:
+                    if key == keyboard.Key.f7:
+                        logger.info("[HOTKEY] F7 pressed -> Bind Window")
+                        if self.window_bind_callback:
+                            self.window_bind_callback()
+                        else:
+                            threading.Thread(target=self.trigger_window_bind, daemon=True).start()
+                    elif key == keyboard.Key.f8:
+                        logger.info("[HOTKEY] F8 pressed -> Toggle Start/Stop")
+                        if self.hotkey_start_callback:
+                            self.hotkey_start_callback()
+                        else:
+                            threading.Thread(target=self.toggle_start_stop, daemon=True).start()
+                    elif key == keyboard.Key.f9:
+                        logger.info("[HOTKEY] F9 pressed -> Toggle Pause/Resume")
+                        if self.hotkey_pause_callback:
+                            self.hotkey_pause_callback()
+                        else:
+                            threading.Thread(target=self.toggle_pause, daemon=True).start()
+                    elif key == keyboard.Key.f10:
+                        logger.info("[HOTKEY] F10 pressed -> Emergency Stop")
+                        if self.hotkey_stop_callback:
+                            self.hotkey_stop_callback()
+                        else:
+                            threading.Thread(target=self.stop_session, daemon=True).start()
+                except Exception:
+                    pass
+
+            with keyboard.Listener(on_press=on_press) as listener:
+                logger.info("Registered cross-platform hotkeys via pynput: [F7] Bind, [F8] Start/Stop, [F9] Pause/Resume, [F10] Emergency Stop")
+                while self._hotkey_listener_active:
+                    time.sleep(0.5)
+                listener.stop()
+        except Exception as e:
+            logger.debug(f"pynput hotkey listener not available: {e}. GUI controls remain fully active.")
 
     def _hardware_hotkey_poller(self) -> None:
         user32 = ctypes.windll.user32
@@ -211,7 +261,8 @@ class SessionController:
         # Input adapter — emulator only uses left clicks
         input_adapter = RealInputExecutor(self.calibrator, humanize=self.config.safety.humanize_mouse_movement)
         executor = ActionExecutor(input_adapter, calibrator=self.calibrator)
-        logger.info("Running in LIVE mode with Win32 mouse interaction.")
+        mode_desc = "Win32 mouse interaction" if sys.platform == "win32" else "native mouse interaction"
+        logger.info(f"Running in LIVE mode with {mode_desc}.")
 
         self.state_machine = StateMachine(
             config=self.config,

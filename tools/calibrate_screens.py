@@ -12,7 +12,6 @@ import logging
 from typing import Dict, Tuple, Optional
 import cv2
 import numpy as np
-import keyboard
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

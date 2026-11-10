@@ -1,6 +1,7 @@
 # =====================================================================
 # Clash of Clans Autonomous Farming Controller - Dependencies
-# Python 3.10 - 3.14 on Windows 10/11 (64-bit)
+# Cross-Platform Support: Windows 10/11 (64-bit) & macOS (Intel & Apple Silicon)
+# Python 3.10 - 3.14
 # =====================================================================
 
 # GUI & Desktop Styling
@@ -16,9 +17,10 @@ onnxruntime>=1.16.0
 # Screen Capture, Windowing & Input Automation
 mss>=9.0.0
 pyautogui>=0.9.54
-pygetwindow>=0.0.9
-pywin32>=306
-keyboard>=0.13.5
+pygetwindow>=0.0.9; sys_platform == 'win32'
+pywin32>=306; sys_platform == 'win32'
+keyboard>=0.13.5; sys_platform == 'win32'
+pynput>=1.7.6; sys_platform != 'win32'
 
 # Configuration & Data Validation
 pydantic>=2.0.0

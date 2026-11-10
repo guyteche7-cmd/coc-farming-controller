@@ -38,7 +38,7 @@ class ScreenCapture:
 
     def _init_mss(self) -> None:
         try:
-            self.sct = mss.mss()
+            self.sct = getattr(mss, "MSS", mss.mss)()
             self.backend = "mss"
         except Exception as e:
             logger.warning(f"MSS initialization failed ({e}), falling back to PIL.ImageGrab")

@@ -1,6 +1,6 @@
 # ⚔️ Clash of Clans Autonomous Farming Controller — Complete Documentation
 
-An advanced, computer-vision and AI-powered autonomous farming bot for **Clash of Clans** on Windows PC (Google Play Games PC, LDPlayer, BlueStacks, Nox).
+An advanced, computer-vision and AI-powered autonomous farming bot for **Clash of Clans** on **Windows PC & macOS** (BlueStacks, Google Play Games PC, LDPlayer, Nox).
 
 ---
 
@@ -20,27 +20,36 @@ An advanced, computer-vision and AI-powered autonomous farming bot for **Clash o
 
 ## 💻 System Requirements
 
-- **Operating System**: Windows 10 or Windows 11 (64-bit).
+- **Operating System**:
+  - **Windows**: Windows 10 or Windows 11 (64-bit).
+  - **macOS**: macOS Monterey (12.0), Ventura (13.0), Sonoma (14.0), or Sequoia (15.0+) on Intel or Apple Silicon (M1/M2/M3/M4).
 - **Python**: Python 3.10, 3.11, 3.12, 3.13, or 3.14.
 - **Game Client**: Clash of Clans running on:
-  - **Google Play Games for PC** (Recommended)
-  - **LDPlayer 9** (1920x1080 resolution recommended)
-  - **BlueStacks 5** (1920x1080 resolution recommended)
-- **Display**: Any 1080p, 1440p, or 4K monitor.
+  - **BlueStacks** (macOS and Windows, 1920x1080 resolution recommended)
+  - **Google Play Games for PC** (Windows)
+  - **LDPlayer 9** (Windows, 1920x1080 resolution recommended)
+- **Display**: Any 1080p, 1440p, or 4K display.
 
 ---
 
 ## 🚀 Quick Installation & Setup
 
-### 1-Click Launch (Recommended)
-1. Extract this zip / clone this repository to any folder on your PC.
-2. Double-click **
-un_bot.bat**.
-3. It will automatically detect Python, install any missing dependencies on first launch, and open the dashboard!
+### 🪟 Windows (1-Click Launch)
+1. Double-click **`run_bot.bat`**.
+2. It automatically detects Python, installs missing dependencies on first launch, and opens the dashboard!
 
-### Manual Installation (Alternative)
-If you prefer installing dependencies manually via terminal:
-`powershell
+### 🍎 macOS (1-Click Launch)
+1. Open Terminal in the project directory.
+2. Run:
+```bash
+chmod +x run_bot.sh
+./run_bot.sh
+```
+3. Ensure Terminal / iTerm has **Accessibility** and **Screen Recording** permissions granted in macOS:
+   `System Settings` -> `Privacy & Security` -> `Screen Recording` & `Accessibility`.
+
+### Manual Installation (Cross-Platform)
+```bash
 pip install -r requirements.txt
 python -m src.app.main
 ```
@@ -49,8 +58,8 @@ python -m src.app.main
 
 ## 🎮 How to Run the Bot
 
-1. Open Clash of Clans on your PC and stay in your Home Village.
-2. Double-click **`run_coc_bot.bat`** (or run `python -m src.app.main`).
+1. Open Clash of Clans on your emulator (BlueStacks on macOS / LDPlayer or BlueStacks on Windows) and stay in your Home Village.
+2. Launch the controller with `run_bot.bat` (Windows) or `./run_bot.sh` (macOS).
 3. In the GUI:
    - Click **`🎯 Bind Game Window (F7)`** (or press **F7**). The bot will automatically lock onto your game client.
    - Adjust your desired **Target Loot Criteria**, **Combat Exit Timer**, and **Operation Mode**.
@@ -126,7 +135,7 @@ The controller registers hardware-level global hotkeys that work even when Clash
 
 | Hotkey | Action | Function |
 | :---: | :---: | :--- |
-| **`F7`** | **Bind Window** | Auto-detects and locks coordinates to Google Play Games / Emulator client area. |
+| **`F7`** | **Bind Window** | Auto-detects and locks coordinates to Google Play Games / BlueStacks client area. |
 | **`F8`** | **Start / Stop** | Toggles the autonomous farming loop on and off. |
 | **`F9`** | **Pause / Resume** | Freezes the state machine temporarily (e.g. if you need to take over). |
 | **`F10`** | **Emergency Stop** | Instantly halts all mouse clicks and background threads safely. |
@@ -135,7 +144,7 @@ The controller registers hardware-level global hotkeys that work even when Clash
 
 ## 🛡️ Safety & Focus Guard
 
-- **Focus Guard**: The bot checks window foreground state before every mouse click. If you Alt-Tab away from Clash of Clans, mouse clicks are immediately halted until the game is focused again.
+- **Focus Guard**: The bot checks window foreground state before every mouse click. If you switch away from Clash of Clans, mouse clicks are immediately halted until the game is focused again.
 - **Humanized Jitter**: Action coordinates include organic human-like micro-delays and pixel jitter.
 
 ---
@@ -143,10 +152,10 @@ The controller registers hardware-level global hotkeys that work even when Clash
 ## 🔧 Troubleshooting & FAQs
 
 ### Q: The bot says "Window: Not Found" or clicks off-screen.
-- **Fix**: Open Clash of Clans on your screen and press **`F7`**. Verify that the green badge in the GUI updates to `Window: Found (1920x1080)`.
+- **Fix**: Open Clash of Clans on your screen and press **`F7`** (or click `🎯 Bind Game Window (F7)`). Verify that the green badge in the GUI updates to `Window: Found (1920x1080)`.
 
-### Q: EasyOCR is downloading models on first launch.
-- **Fix**: EasyOCR downloads small recognition models (~80MB) on first start into `~/.EasyOCR`. This only happens once.
+### Q: How do I run on macOS?
+- **Fix**: Run `./run_bot.sh`. When prompted, grant Screen Recording and Accessibility permissions to Terminal / iTerm in macOS `System Settings -> Privacy & Security`.
 
 ### Q: How do I run on GPU / CUDA?
 - If you have an NVIDIA GPU, PyTorch will automatically use CUDA acceleration. If not, it runs smoothly on standard CPU.

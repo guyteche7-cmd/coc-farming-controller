@@ -1,13 +1,13 @@
 # 🛡️ Clash of Clans Autonomous Farming Controller
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
-[![Platform Windows](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011%2064--bit-0078d7.svg)](https://microsoft.com/windows)
+[![Platform Windows & macOS](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue.svg)](https://github.com/guyteche7-cmd/coc-farming-controller)
 [![OCR RapidOCR PP-OCRv4](https://img.shields.io/badge/OCR-RapidOCR%20%2F%20PP--OCRv4-brightgreen.svg)](https://github.com/RapidAI/RapidOCR)
 [![License MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-An intelligent, computer-vision and AI-powered autonomous farming system for **Clash of Clans** on Windows PC (LDPlayer 9, Google Play Games PC, BlueStacks).
+An intelligent, computer-vision and AI-powered autonomous farming system for **Clash of Clans** on **Windows PC & macOS** (BlueStacks, LDPlayer 9, Google Play Games PC).
 
-Designed from the ground up for high reliability, zero hallucinations, and safety, this controller automates matchmaking loot evaluation, intelligent single-spot troop probing, universal multi-troop army deployment, hero ability triggering, wall upgrades, and storage capacity limits.
+Designed from the ground up for cross-platform reliability, zero hallucinations, and safety, this controller automates matchmaking loot evaluation, intelligent single-spot troop probing, universal multi-troop army deployment, hero ability triggering, wall upgrades, and storage capacity limits.
 
 ---
 
@@ -45,7 +45,7 @@ Designed from the ground up for high reliability, zero hallucinations, and safet
 - Automatic single-piece wall upgrade module to burn excess gold/elixir before hitting storage caps.
 
 ### 5. 🖥️ Modern Desktop GUI & SQLite Audit Trail
-- Clean CustomTkinter dark-themed interface with live combat telemetry, storage inspector, target loot filters, and emergency kill switches (`F10` Pause, `F12` Emergency Stop).
+- Clean CustomTkinter dark-themed interface with live combat telemetry, storage inspector, target loot filters, and emergency controls (`F8` Start/Stop, `F9` Pause, `F10` Emergency Stop).
 - Persistent SQLite database recording every attack session, looted resources, and wall upgrades.
 
 ---
@@ -56,7 +56,7 @@ Designed from the ground up for high reliability, zero hallucinations, and safet
 flowchart TD
     subgraph UI ["User Interface & Controls"]
         GUI["CustomTkinter Desktop GUI"]
-        Hotkeys["Global Hotkeys (F10 Pause / F12 Stop)"]
+        Hotkeys["Global Hotkeys (F8 Start / F9 Pause / F10 Stop)"]
     end
 
     subgraph StateMachine ["State Machine & Orchestration"]
@@ -79,7 +79,7 @@ flowchart TD
 
     subgraph Execution ["Input & Screen Capture"]
         Cap["ScreenCapture (mss Desktop Pipeline)"]
-        Exec["ActionExecutor (Win32 / PyAutoGUI)"]
+        Exec["ActionExecutor (Win32 / macOS PyAutoGUI)"]
     end
 
     GUI --> SM
@@ -99,42 +99,61 @@ flowchart TD
 
 ## 📋 Prerequisites
 
-1. **Operating System**: Windows 10 or Windows 11 (64-bit).
-2. **Python**: Python 3.10 to 3.14 (64-bit).
+1. **Operating System**:
+   - **Windows**: Windows 10 or Windows 11 (64-bit).
+   - **macOS**: macOS Monterey (12.0), Ventura (13.0), Sonoma (14.0), or Sequoia (15.0+) on Intel or Apple Silicon (M1/M2/M3/M4).
+2. **Python**: Python 3.10 to 3.14.
 3. **Android Emulator**:
-   - **Recommended**: **LDPlayer 9** (or Google Play Games PC, BlueStacks 5).
-   - **Resolution**: **1920 $\times$ 1080 (Landscape)**, **DPI: 280 or 320**.
-   - Make sure Clash of Clans is updated to the latest version.
+   - **macOS**: **BlueStacks App Player** (Resolution: 1920 $\times$ 1080 Landscape).
+   - **Windows**: **LDPlayer 9**, **Google Play Games PC**, or **BlueStacks 5** (1920 $\times$ 1080 Landscape, DPI 280-320).
+   - Ensure Clash of Clans is installed and updated to the latest version.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### 1-Click Launch (Zero Setup)
+### 🪟 Windows (1-Click Launch)
 Simply double-click:
-`ash
+```bat
 run_bot.bat
-`
+```
+`run_bot.bat` will automatically verify your Python environment, install any missing dependencies on first launch, and launch the GUI dashboard immediately!
 
-un_bot.bat will automatically verify your Python environment, install any missing dependencies on first launch, and launch the GUI dashboard immediately!
+---
+
+### 🍎 macOS (1-Click Launch)
+1. Open **Terminal** in the cloned repository folder.
+2. Make the launcher executable and run:
+```bash
+chmod +x run_bot.sh
+./run_bot.sh
+```
+`run_bot.sh` will auto-detect Python 3, install dependencies via `pip`, and launch the controller!
+
+> **macOS Permissions Note**: On macOS, grant **Accessibility** and **Screen Recording** permissions to your Terminal (or iTerm / VSCode) under:
+> `System Settings` -> `Privacy & Security` -> `Screen Recording` & `Accessibility`.
 
 ---
 
 ## 🎮 How to Use
 
-1. **Start LDPlayer 9** and open Clash of Clans to your Home Village.
-2. Launch the Farming Controller using `run_bot.bat`.
-3. Set your target criteria:
-   - **Min Gold**: e.g. `400,000`
-   - **Min Elixir**: e.g. `400,000`
-   - **Min Dark Elixir**: e.g. `3,000`
-   - **Hero Count**: Select how many heroes are currently active (e.g. `2`, `3`, or `4`).
-   - **Deploy Siege**: Check to deploy your Clan Castle / Siege Machine.
+1. **Start your Emulator** (BlueStacks on macOS / LDPlayer or BlueStacks on Windows) and open Clash of Clans to your Home Village.
+2. Launch the Farming Controller using `run_bot.bat` (Windows) or `./run_bot.sh` (macOS).
+3. In the GUI:
+   - Click **`🎯 Bind Game Window (F7)`** to focus and lock onto your emulator window.
+   - Adjust your target loot thresholds:
+     - **Min Gold**: e.g. `400,000`
+     - **Min Elixir**: e.g. `400,000`
+     - **Min Dark Elixir**: e.g. `3,000`
+     - **Hero Count**: Select how many heroes are currently active (e.g. `2`, `3`, or `4`).
+     - **Deploy Siege**: Check to deploy your Clan Castle / Siege Machine.
 4. (Optional) Set your **Storage Limits** (e.g. Stop if Dark Elixir reaches `450,000`).
-5. Click **▶ Start Farming**.
+5. Click **▶ Start Farming (F8)**.
 6. **Hotkeys**:
-   - Press **`F10`** at any time to Pause / Resume.
-   - Press **`F12`** for Emergency Stop.
+   - **`F7`**: Bind game window.
+   - **`F8`**: Start / Stop farming.
+   - **`F9`**: Pause / Resume.
+   - **`F10`**: Emergency Stop.
 
 ---
 
@@ -142,10 +161,12 @@ un_bot.bat will automatically verify your Python environment, install any missin
 
 ```
 coc-farming-controller/
-├── assets/                  # Deterministic glyph templates, UI assets & test cases
+├── assets/                  # Deterministic glyph templates, UI assets & cards
+│   ├── army/                # 76 card & icon templates (Troops, Heroes, Spells, Siege)
 │   ├── templates/           # Supercell font glyphs for 0-9, %, k, M
 │   ├── test_cases/          # Self-contained test images for pytest suite
 │   └── ui/                  # UI button anchors and icons
+├── builderBase/             # Autonomous Builder Base 2.0 farming subsystem
 ├── config/                  # Default application configuration (YAML)
 ├── docs/                    # Technical documentation & architecture guides
 │   ├── CURRENT_ARCHITECTURE.md
@@ -153,9 +174,9 @@ coc-farming-controller/
 │   └── OPERATOR_GUIDE.md
 ├── src/                     # Core source code
 │   ├── app/                 # CustomTkinter GUI & Application entrypoint
-│   ├── calibration/         # Window calibrator & screen coordinates
-│   ├── capture/             # High-speed mss screen capture
-│   ├── control/             # StateMachine & game loop orchestration
+│   ├── calibration/         # Cross-platform window calibrator & coordinates
+│   ├── capture/             # High-speed screen capture (mss / PIL fallback)
+│   ├── control/             # StateMachine & cross-platform input orchestration
 │   ├── extensions/          # External VLM & Gemini perception plugins
 │   ├── persistence/         # SQLite database & configuration manager
 │   ├── planning/            # DeploymentPlanner & WallPlanner
@@ -169,8 +190,9 @@ coc-farming-controller/
 ├── CONTRIBUTING.md          # Guide for open-source contributors
 ├── LICENSE                  # MIT License
 ├── README.md                # Main documentation
-├── requirements.txt         # Python package dependencies
+├── requirements.txt         # Cross-platform package dependencies
 ├── run_bot.bat              # One-click Windows startup script
+├── run_bot.sh               # One-click macOS startup script
 └── test.md                  # Comprehensive problem & solution audit log
 ```
 

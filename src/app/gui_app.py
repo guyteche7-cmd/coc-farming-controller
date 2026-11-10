@@ -13,7 +13,6 @@ import logging
 import re
 from datetime import datetime
 import customtkinter as ctk
-import keyboard
 
 from src.persistence.config_manager import ConfigManager
 from src.persistence.database import DatabaseManager
@@ -609,9 +608,10 @@ class DashboardApp(ctk.CTk):
         )
         lbl_shortcuts.pack(side="left", padx=(12, 0))
 
+        exec_pill_label = "⚡ LIVE WIN32 MOUSE EXECUTION" if sys.platform == "win32" else "⚡ LIVE MOUSE EXECUTION"
         self.mode_pill = ctk.CTkLabel(
             header_frame,
-            text="⚡ LIVE WIN32 MOUSE EXECUTION",
+            text=exec_pill_label,
             fg_color="#dc2626",
             corner_radius=8,
             padx=12,
@@ -1319,14 +1319,20 @@ class DashboardApp(ctk.CTk):
         self.controller.calibrator.calibrate_live_window()
         self.controller.calibrator.focus_game_window()
 
-        self.log_event(f"Starting farming session in mode '{self.config.mode}' [LIVE WIN32 EXECUTION]...")
+        exec_type = "LIVE WIN32 EXECUTION" if sys.platform == "win32" else "LIVE MOUSE EXECUTION"
+        self.log_event(f"Starting farming session in mode '{self.config.mode}' [{exec_type}]...")
         self.controller.start_session()
 
     def _open_audit_log(self) -> None:
         from src.utils.audit_logger import AUDIT_LOG_FILE
         try:
             if os.path.exists(AUDIT_LOG_FILE):
-                os.startfile(AUDIT_LOG_FILE)
+                if sys.platform == "win32":
+                    os.startfile(AUDIT_LOG_FILE)
+                elif sys.platform == "darwin":
+                    subprocess.run(["open", AUDIT_LOG_FILE])
+                else:
+                    subprocess.run(["xdg-open", AUDIT_LOG_FILE])
             else:
                 self.log_event("[AUDIT LOG] Log file will be generated on starting session.")
         except Exception as e:
@@ -1336,7 +1342,12 @@ class DashboardApp(ctk.CTk):
         from builderBase.src.bb_audit_logger import BB_AUDIT_LOG_FILE
         try:
             if os.path.exists(BB_AUDIT_LOG_FILE):
-                os.startfile(BB_AUDIT_LOG_FILE)
+                if sys.platform == "win32":
+                    os.startfile(BB_AUDIT_LOG_FILE)
+                elif sys.platform == "darwin":
+                    subprocess.run(["open", BB_AUDIT_LOG_FILE])
+                else:
+                    subprocess.run(["xdg-open", BB_AUDIT_LOG_FILE])
             else:
                 self.log_event("[BB AUDIT LOG] Log file will be generated on starting Builder Base attack.")
         except Exception as e:

@@ -1,3 +1,29 @@
+import sys
+
+if sys.platform != "win32":
+    import subprocess
+    print("=== macOS Diagnostics for Clash of Clans / BlueStacks ===")
+    osa_script = '''
+    tell application "System Events"
+        set procList to every application process whose visible is true
+        repeat with proc in procList
+            set pName to name of proc
+            try
+                set winList to every window of proc
+                repeat with w in winList
+                    set {x, y} to position of w
+                    set {w_val, h_val} to size of w
+                    set wTitle to name of w
+                    log (pName & " | Window: '" & wTitle & "' | Pos: (" & (x as text) & ", " & (y as text) & ") | Size: (" & (w_val as text) & ", " & (h_val as text) & ")")
+                end repeat
+            end try
+        end repeat
+    end tell
+    '''
+    res = subprocess.run(["osascript", "-e", osa_script], capture_output=True, text=True)
+    print(res.stderr if res.stderr else res.stdout)
+    sys.exit(0)
+
 import ctypes
 import ctypes.wintypes
 import cv2
@@ -43,8 +69,4 @@ for w in windows:
     if any(k in t for k in ["clash", "google play", "bluestacks", "ldplayer", "nox", "memu", "game"]):
         print(f"MATCH: HWND={w['hwnd']} | Title='{w['title']}' | Rect={w['rect']} | Size={w['w_h']} | ClientSize={w['client_w_h']}")
     elif "dashboard" in t or "coc" in t or "controller" in t:
-        print(f"APP: HWND={w['hwnd']} | Title='{w['title']}' | Rect={w['rect']}")
-
-print("\n--- Top 15 Visible Windows ---")
-for w in windows[:15]:
-    print(f"Title='{w['title']}' | Rect={w['rect']}")
+        print(f"DASHBOARD: HWND={w['hwnd']} | Title='{w['title']}' | Rect={w['rect']}")
