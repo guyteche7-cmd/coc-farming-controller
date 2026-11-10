@@ -240,6 +240,13 @@ coc-farming-controller/
 
 ---
 
+## 👥 Authors & Acknowledgements
+
+- **Core Maintainers**: [@ayushSTK](https://github.com/ayushSTK) & [@guyteche7-cmd](https://github.com/guyteche7-cmd)
+- **AI Pair Programming & Architecture**: Developed with **Antigravity** (Google DeepMind Advanced Agentic Coding).
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions from friends and the open-source community! Please read [**CONTRIBUTING.md**](CONTRIBUTING.md) for branch naming conventions, PR guidelines, and testing requirements before submitting code.
