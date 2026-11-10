@@ -141,8 +141,11 @@ class DeploymentPlanner:
                     continue
                 mean_v = float(np.mean(crop))
                 std_v = float(np.std(crop))
-                # Empty slots in Clash of Clans have dark/grass background with low mean and std
-                if mean_v > 75.0 or (mean_v > 65.0 and std_v > 38.0):
+                b_mean = float(np.mean(crop[:, :, 0]))
+                g_mean = float(np.mean(crop[:, :, 1]))
+                # Empty slots in Clash of Clans have transparent dashed borders where base grass shines through
+                is_grass = (g_mean - b_mean > 16.0)
+                if not is_grass and (mean_v > 75.0 or (mean_v > 55.0 and std_v > 20.0)):
                     occupied.append(idx)
 
         # Take contiguous sequence of occupied slots starting from 0
@@ -155,7 +158,7 @@ class DeploymentPlanner:
 
         total_occ = len(contiguous)
         if total_occ == 0:
-            total_occ = 5 if configured_hero_count == 2 else 7
+            total_occ = 6 if configured_hero_count == 2 else 7
             contiguous = list(range(total_occ))
 
         # 2. Read quantity badge for each contiguous slot
@@ -170,62 +173,58 @@ class DeploymentPlanner:
         # In Clash of Clans, the deployment ribbon ordering is invariant:
         # [Troops (1..N)] -> [Siege Machine (0..1)] -> [Heroes (0..5)] -> [Spells (1..M)]
 
-        # A. Leading slots with count badge are Troops (e.g. Slot 0 Valkyries, Slot 1 MOMMA PEKKAs)
-        troop_slots = []
-        for s in contiguous:
-            if has_badge[s]:
-                troop_slots.append(s)
-            else:
-                break
-
-        # Fallback: Slot 0 is always at least a Troop
-        if not troop_slots and total_occ > 0:
-            troop_slots = [0]
-
-        first_non_troop = len(troop_slots)
-
-        # B. Trailing slots with count badge are Spells (e.g. Slot 5 Earthquake)
+        # Trailing slots with count badge are Spells (e.g. Slot 5 Earthquake)
         spell_slots = []
         for s in reversed(contiguous):
-            if s >= first_non_troop and has_badge[s]:
+            if has_badge.get(s, False):
                 spell_slots.append(s)
             else:
                 break
         spell_slots.reverse()
 
-        # C. Middle slots between Troops and Spells are Siege Machine & Heroes
-        last_middle = (spell_slots[0] - 1) if spell_slots else (total_occ - 1)
-        middle_slots = [s for s in range(first_non_troop, last_middle + 1)]
+        num_spells = len(spell_slots) if spell_slots else 1
+        expected_heroes = configured_hero_count if configured_hero_count > 0 else 4
+        expected_siege = 1 if deploy_siege else 0
 
-        # If no spell slots were detected via badge, but middle_slots exceeds expected heroes + siege:
-        if not spell_slots and middle_slots:
-            expected_heroes = configured_hero_count if configured_hero_count > 0 else 4
-            expected_siege = 1 if deploy_siege else 0
-            if len(middle_slots) > expected_heroes + expected_siege:
-                spell_slots = [middle_slots.pop()]
-
-        # D. Partition middle slots into Siege Machine and Heroes:
-        siege_slot = None
-        hero_slots = []
-
-        if deploy_siege and middle_slots:
-            if configured_hero_count > 0:
-                if len(middle_slots) > configured_hero_count:
-                    siege_slot = middle_slots[0]
-                    hero_slots = middle_slots[1:]
+        if configured_hero_count > 0 and total_occ >= expected_heroes + expected_siege + 1:
+            # Deterministic partition based on invariant order and configured hero/siege count
+            troop_end = max(1, total_occ - num_spells - expected_heroes - expected_siege)
+            troop_slots = list(range(0, troop_end))
+            siege_slot = (troop_slots[-1] + 1) if expected_siege else None
+            hero_start = (siege_slot + 1) if siege_slot is not None else (troop_slots[-1] + 1)
+            hero_end = min(total_occ - num_spells, hero_start + expected_heroes)
+            hero_slots = list(range(hero_start, hero_end))
+            spell_slots = list(range(hero_end, total_occ))
+        else:
+            # Auto hero count: Leading slots with badge (or slot 0) are Troops
+            troop_slots = []
+            for s in contiguous:
+                if has_badge.get(s, False) or s == 0:
+                    troop_slots.append(s)
                 else:
-                    siege_slot = middle_slots[0] if len(middle_slots) > 1 else None
-                    hero_slots = [s for s in middle_slots if s != siege_slot]
-            else:
-                # Auto: First middle slot is Siege Machine, remaining are Heroes
+                    break
+
+            if not troop_slots and total_occ > 0:
+                troop_slots = [0]
+
+            first_non_troop = len(troop_slots)
+            last_middle = (spell_slots[0] - 1) if spell_slots else (total_occ - 1)
+            middle_slots = [s for s in range(first_non_troop, last_middle + 1)]
+
+            if not spell_slots and middle_slots:
+                if len(middle_slots) > expected_heroes + expected_siege:
+                    spell_slots = [middle_slots.pop()]
+
+            siege_slot = None
+            hero_slots = []
+            if deploy_siege and middle_slots:
                 siege_slot = middle_slots[0]
                 hero_slots = middle_slots[1:]
-        else:
-            hero_slots = list(middle_slots)
+            else:
+                hero_slots = list(middle_slots)
 
-        # Respect configured_hero_count if specified and > 0
-        if configured_hero_count > 0 and len(hero_slots) > configured_hero_count:
-            hero_slots = hero_slots[:configured_hero_count]
+            if configured_hero_count > 0 and len(hero_slots) > configured_hero_count:
+                hero_slots = hero_slots[:configured_hero_count]
 
         # Trailing unassigned slots are spells
         assigned = set(troop_slots)
@@ -296,17 +295,20 @@ class DeploymentPlanner:
     def read_slot_unit_count(self, frame_bgr, slot_idx: int) -> Optional[int]:
         """
         Reads the unit quantity badge (e.g. 'x42' -> 42) for a given slot index on the bottom ribbon.
-        Uses OCR on the badge region located at the top of the slot card.
+        Uses OCR on the top-right badge region of the slot card.
         """
         import re
+        import cv2
+        import numpy as np
         if frame_bgr is None or frame_bgr.size == 0 or slot_idx < 0 or slot_idx >= len(self.SLOT_X_COORDINATES):
             return None
 
         h, w = frame_bgr.shape[:2]
         nx = self.SLOT_X_COORDINATES[slot_idx]
-        x1 = max(0, int((nx - 0.036) * w))
-        x2 = min(w, int((nx + 0.039) * w))
-        y1 = max(0, int(0.820 * h))
+        # Precise top-right badge region of the card
+        x1 = max(0, int((nx - 0.005) * w))
+        x2 = min(w, int((nx + 0.040) * w))
+        y1 = max(0, int(0.825 * h))
         y2 = min(h, int(0.875 * h))
 
         crop = frame_bgr[y1:y2, x1:x2]
@@ -316,13 +318,30 @@ class DeploymentPlanner:
         try:
             from src.vision.ocr_engine import get_shared_paddle_ocr_engine
             ocr = get_shared_paddle_ocr_engine()
-            txt, conf = ocr.read_text(crop)
-            if txt:
-                m = re.search(r"(\d+)", txt)
-                if m:
-                    val = int(m.group(1))
-                    logger.info(f"[DEPLOYMENT PLANNER] Read Slot {slot_idx} unit count: {val} (raw='{txt}', conf={conf:.2f})")
-                    return val
+            # Upscale 3x for small text recognition
+            scaled = cv2.resize(crop, (0, 0), fx=3.0, fy=3.0, interpolation=cv2.INTER_CUBIC)
+            gray = cv2.cvtColor(scaled, cv2.COLOR_BGR2GRAY)
+
+            candidates = []
+            for th in [170, 150, 190]:
+                _, thresh = cv2.threshold(gray, th, 255, cv2.THRESH_BINARY)
+                # Ensure 3-channel for all OCR backends
+                thresh_bgr = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+                candidates.append(thresh_bgr)
+            candidates.append(scaled)
+
+            for cand in candidates:
+                # Use read_words to bypass button heuristic fallbacks ("end battle", "next")
+                words = ocr.read_words(cand, min_conf=0.30)
+                if words:
+                    for item in words:
+                        txt = item.get("text", "").strip()
+                        m = re.search(r"[xX]?\s*(\d+)", txt)
+                        if m:
+                            val = int(m.group(1))
+                            conf = item.get("confidence", 0.0)
+                            logger.info(f"[DEPLOYMENT PLANNER] Read Slot {slot_idx} unit count: {val} (raw='{txt}', conf={conf:.2f})")
+                            return val
         except Exception as e:
             logger.debug(f"[DEPLOYMENT PLANNER] Failed to read badge for slot {slot_idx}: {e}")
 

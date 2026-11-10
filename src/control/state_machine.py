@@ -812,6 +812,47 @@ class StateMachine:
                             logger.info(f"[DEPLOYMENT] Slot {t_slot} (Troops) fully depleted and greyed out after batch {batch+1}!")
                             break
 
+        # 4B. COMPREHENSIVE TROOP SWEEP & DEPLETION VERIFICATION
+        # Verify that NO active/colored troop slot was left behind on the ribbon
+        if not self.is_stopped and not self.is_paused:
+            hero_first_slot = layout.hero_slots[0] if layout.hero_slots else len(self.deployment_planner.SLOT_X_COORDINATES)
+            candidate_sweep_slots = sorted(list(set(layout.troop_slots + [s for s in layout.occupied_slots if s < hero_first_slot and s != layout.siege_slot])))
+
+            for s in candidate_sweep_slots:
+                if self.is_stopped or self.is_paused:
+                    return
+                if cap:
+                    chk_frame = cap.capture_frame()
+                    if chk_frame is not None and not self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.SLOT_X_COORDINATES[s]):
+                        logger.warning(f"[TROOP SWEEP] Slot {s} is still active/colored with remaining units! Executing rapid sweep depletion dump...")
+                        sel_sweep = self.deployment_planner.generate_slot_select_action(s)
+                        self.executor.execute_deployment_action(sel_sweep)
+                        time.sleep(0.06)
+
+                        for sweep_batch in range(8):
+                            if self.is_stopped or self.is_paused:
+                                return
+                            if self.calibrator and not self.calibrator.is_game_in_foreground():
+                                self.calibrator.focus_game_window()
+
+                            dump_sweep = DeploymentAction(
+                                action_type=ActionType.DEPLOY_POINT,
+                                target_name=f"Sweep Dump Remaining Units Slot {s} Batch {sweep_batch+1}",
+                                slot_index=s,
+                                norm_x=cx,
+                                norm_y=cy,
+                                tap_count=4,
+                                delay_after_sec=0.035,
+                                description=f"Sweep dump remaining units on Slot {s} at ({cx:.3f}, {cy:.3f})"
+                            )
+                            self.executor.execute_deployment_action(dump_sweep)
+                            time.sleep(0.06)
+
+                            chk_sweep = cap.capture_frame()
+                            if chk_sweep is not None and self.deployment_planner.is_slot_greyed_out(chk_sweep, self.deployment_planner.SLOT_X_COORDINATES[s]):
+                                logger.info(f"[TROOP SWEEP] Slot {s} successfully verified fully depleted and greyed out!")
+                                break
+
         # 5. DEPLOY ALL SPELLS (ON ACTUAL SPELL SLOTS UNTIL GREYED OUT)
         if not self.is_stopped and not self.is_paused and layout.spell_slots:
             logger.info(f"[DEPLOYMENT] Phase 5/6: Casting Spells on slots {layout.spell_slots} across randomized base targets...")

@@ -70,6 +70,45 @@ class TestArmyDetection:
         assert layout.spell_slots == [5], f"Expected spell_slots=[5], got {layout.spell_slots}"
         assert layout.total_occupied == 6
 
+    def test_wall_breaker_multi_troop_partition_with_two_heroes(self):
+        """
+        Verifies that when a player brings multiple troop types (e.g. Valkyries + Super Wall Breakers),
+        both troop slots are correctly detected as troop_slots=[0, 1] rather than misclassifying the
+        Wall Breaker as a siege machine.
+        """
+        import numpy as np
+        planner = DeploymentPlanner()
+        # Mock frame with 6 solid card slots and empty grass slots 6, 7, 8
+        dummy_frame = np.zeros((600, 1000, 3), dtype=np.uint8)
+        # Give slots 0-5 card values (mean > 60, g-b near 0)
+        h, w = dummy_frame.shape[:2]
+        for s in range(6):
+            nx = planner.SLOT_X_COORDINATES[s]
+            x1, x2 = max(0, int((nx - 0.030) * w)), min(w, int((nx + 0.030) * w))
+            y1, y2 = max(0, int(0.835 * h)), min(h, int(0.975 * h))
+            dummy_frame[y1:y2, x1:x2] = [80, 80, 80]
+        # Slots 6-8 have grass background (g - b > 25)
+        for s in range(6, 9):
+            nx = planner.SLOT_X_COORDINATES[s]
+            x1, x2 = max(0, int((nx - 0.030) * w)), min(w, int((nx + 0.030) * w))
+            y1, y2 = max(0, int(0.835 * h)), min(h, int(0.975 * h))
+            dummy_frame[y1:y2, x1:x2] = [30, 80, 30]
+
+        # Slot 0 has 0/None (depleted Valkyries), Slot 1 has 1 (Wall Breakers), Slot 5 has Spell
+        badge_mock = {0: None, 1: 1, 2: None, 3: None, 4: None, 5: 1}
+        planner.read_slot_unit_count = MagicMock(side_effect=lambda f, s: badge_mock.get(s, None))
+
+        layout = planner.detect_army_slots(
+            dummy_frame,
+            configured_hero_count=2,
+            deploy_siege=True
+        )
+        assert layout.troop_slots == [0, 1], f"Expected troop_slots=[0, 1], got {layout.troop_slots}"
+        assert layout.siege_slot == 2, f"Expected siege_slot=2, got {layout.siege_slot}"
+        assert layout.hero_slots == [3, 4], f"Expected hero_slots=[3, 4], got {layout.hero_slots}"
+        assert layout.spell_slots == [5], f"Expected spell_slots=[5], got {layout.spell_slots}"
+        assert layout.total_occupied == 6
+
     def test_recovery_plan_deselection(self):
         planner = DeploymentPlanner()
         rec_plan = planner.generate_recovery_plan(ledger=MagicMock(), hero_slots=[2, 3, 4])

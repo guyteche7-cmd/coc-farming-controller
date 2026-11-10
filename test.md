@@ -419,5 +419,6 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
 | **State Machine Tests** | `tests/test_state_machine.py` | 4/4 unit tests pass | 4/4 passed | **PASSED** |
 | **Storage Limit Tests** | `tests/test_storage_limit.py` | 3/3 unit tests pass | 3/3 passed | **PASSED** |
 | **Deployment & Rules** | `tests/test_deployment_planner.py` + `rules` | 11/11 tests pass | 11/11 passed | **PASSED** |
-| **Army Layout Detection** | `tests/test_army_detection.py` | Detects multi-troops [0, 1], siege 2, heroes [3, 4], spells [5] | 3/3 passed | **PASSED** |
-| **Full Project Suite** | `pytest tests/` | All 39 unit tests pass | 39/39 passed (0 failures) | **PASSED** |
+| **Army Layout Detection** | `tests/test_army_detection.py` | Detects multi-troops [0, 1], siege 2, heroes [3, 4], spells [5] | 4/4 passed | **PASSED** |
+| **Troop Sweep Depletion** | `StateMachine._execute_full_deployment()` | Phase 4B scans ribbon and empties any colored troop | 100% troops deployed | **PASSED** |
+| **Full Project Suite** | `pytest tests/` | All 40 unit tests pass | 40/40 passed (0 failures) | **PASSED** |
