@@ -3,7 +3,6 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
 [![Platform Windows](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011%2064--bit-0078d7.svg)](https://microsoft.com/windows)
 [![OCR RapidOCR PP-OCRv4](https://img.shields.io/badge/OCR-RapidOCR%20%2F%20PP--OCRv4-brightgreen.svg)](https://github.com/RapidAI/RapidOCR)
-[![Tests Passing](https://img.shields.io/badge/tests-39%2F39%20passing-success.svg)](tests/)
 [![License MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 An intelligent, computer-vision and AI-powered autonomous farming system for **Clash of Clans** on Windows PC (LDPlayer 9, Google Play Games PC, BlueStacks).
@@ -161,22 +160,6 @@ python -m src.app.main
 6. **Hotkeys**:
    - Press **`F10`** at any time to Pause / Resume.
    - Press **`F12`** for Emergency Stop.
-
----
-
-## 🧪 Running Unit Tests
-
-The test suite contains 39 self-contained unit tests covering glyph matching, OCR text reading, dynamic army ribbon classification, multi-troop deployment, popup safety filters, and state machine transitions.
-
-Run the test suite with:
-```bash
-python -m pytest tests/ -v
-```
-
-Expected output:
-```
-======================= 39 passed in ~45s =======================
-```
 
 ---
 
