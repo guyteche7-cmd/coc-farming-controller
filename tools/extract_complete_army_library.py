@@ -35,8 +35,8 @@ import os
 import shutil
 import cv2
 
-REF_DIR = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\assets\reference"
-ARMY_DIR = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\assets\army"
+REF_DIR = r"assets\reference"
+ARMY_DIR = r"assets\army"
 
 def reset_army_dirs():
     for sub in ["troops", "spells", "sieges", "heroes", "templates", "cards"]:

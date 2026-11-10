@@ -8,7 +8,7 @@ from src.vision.state_detector import UIStateDetector
 from src.vision.loot_detector import LootDetector
 from src.planning.deployment_planner import DeploymentPlanner
 
-temp_dir = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\temp"
+temp_dir = r"temp"
 img_paths = glob.glob(os.path.join(temp_dir, "*.png")) + glob.glob(os.path.join(temp_dir, "*.jpg"))
 
 print(f"Found {len(img_paths)} dataset images in temp/\n")

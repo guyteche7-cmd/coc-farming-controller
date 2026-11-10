@@ -4,7 +4,7 @@ import cv2
 
 sys.path.insert(0, os.path.abspath("."))
 
-img_path = r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787467492294.png"
+img_path = r"assets/reference/media_1787467492294.png"
 img = cv2.imread(img_path)
 h, w, _ = img.shape
 print(f"LDPlayer full desktop screenshot size: {w}x{h}")

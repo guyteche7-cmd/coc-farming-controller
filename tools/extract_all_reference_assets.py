@@ -7,8 +7,8 @@ import os
 import cv2
 import numpy as np
 
-REF_DIR = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\temp\ref"
-ARMY_DIR = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\assets\army"
+REF_DIR = r"temp\ref"
+ARMY_DIR = r"assets\army"
 
 def save_asset(card_img, category, name):
     cat_dir = os.path.join(ARMY_DIR, category)

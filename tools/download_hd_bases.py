@@ -6,7 +6,7 @@ import numpy as np
 
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-TARGET_DIR = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\assets\downloads"
+TARGET_DIR = r"assets\downloads"
 os.makedirs(TARGET_DIR, exist_ok=True)
 
 # Function to fetch base images from ClashCodes

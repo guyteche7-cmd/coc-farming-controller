@@ -11,7 +11,7 @@ if v_img is not None:
     print("Fixed assets/ui/return_home_button.png using clean green Return Home template.")
 
 # 2. Extract clean Multiplayer tab and Single Player tab from full screen ref_1.png
-ref_path = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\temp\ref_1.png"
+ref_path = r"temp\ref_1.png"
 ref_img = cv2.imread(ref_path)
 if ref_img is not None:
     h, w, _ = ref_img.shape

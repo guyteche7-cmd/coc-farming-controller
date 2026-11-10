@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-img_clean_walls = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787426671623.png")
+img_clean_walls = cv2.imread(r"assets/reference/media_1787426671623.png")
 
 h, w, _ = img_clean_walls.shape
 print(f"Clean wall chart shape: {w}x{h}")

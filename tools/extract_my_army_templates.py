@@ -1,6 +1,6 @@
 import cv2
 
-img = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787459793239.png")
+img = cv2.imread(r"assets/reference/media_1787459793239.png")
 h, w, _ = img.shape
 print(f"Image size: {w}x{h}")
 

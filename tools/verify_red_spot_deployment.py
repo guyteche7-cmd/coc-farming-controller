@@ -1,7 +1,7 @@
 import cv2
 import os
 
-img_path = r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787473061447.jpg"
+img_path = r"assets/reference/media_1787473061447.jpg"
 img = cv2.imread(img_path)
 h, w, _ = img.shape
 print(f"Screenshot Resolution: {w}x{h}")

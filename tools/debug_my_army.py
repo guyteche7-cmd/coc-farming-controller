@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.abspath("."))
 import cv2
 from src.vision.state_detector import UIStateDetector
 
-img_path = r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787459793239.png"
+img_path = r"assets/reference/media_1787459793239.png"
 img = cv2.imread(img_path)
 h, w, _ = img.shape
 print(f"My Army screenshot dimensions: {w}x{h}")

@@ -42,22 +42,22 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
 
 ### Method 1: Deterministic Pixel Glyph Matching
 - **Target**: All numerical Supercell game values (Available Loot in Matchmaking, Village HUD Storages, Combat Countdown Timers, Destruction Percentages).
-- **Technology**: `SupercellGlyphReader` in [`src/vision/glyph_reader.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/glyph_reader.py).
+- **Technology**: `SupercellGlyphReader` in [`src/vision/glyph_reader.py`](file:///src/vision/glyph_reader.py).
 - **Why**: Neural networks (Tesseract, EasyOCR) frequently hallucinate numbers under variable scaling, confusing `6` with `8`, `1` with `7`, dropping commas, or appending false zeroes. Deterministic normalized cross-correlation against exact Supercell-Magic font templates provides **100% mathematical zero-hallucination accuracy** with sub-5ms latency.
 
 ### Method 2: PaddleOCR (PP-OCRv4 / PP-OCRv5)
 - **Target**: Arbitrary text, clean alphanumerics, player tags, clan names, village labels, and UI buttons (`Shop`, `Battle`, `Return Home`, `Okay`, `Cancel`).
-- **Technology**: `PaddleOCREngine` in [`src/vision/ocr_engine.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/ocr_engine.py) running Baidu's PP-OCRv4 models (`ch_PP-OCRv4_det`, `ch_PP-OCRv4_rec`) via ONNXRuntime CPU acceleration.
+- **Technology**: `PaddleOCREngine` in [`src/vision/ocr_engine.py`](file:///src/vision/ocr_engine.py) running Baidu's PP-OCRv4 models (`ch_PP-OCRv4_det`, `ch_PP-OCRv4_rec`) via ONNXRuntime CPU acceleration.
 - **Why**: Traditional OCR models either require heavy PyTorch runtimes that crash on Windows CPU or fail on rotated/stylized clan titles. PP-OCRv4 delivers ultra-fast, robust multilingual text detection and recognition with graceful heuristic fallback.
 
 ### Method 3: Microsoft Florence-2 Open-Vocabulary Vision
 - **Target**: Unknown popups, in-game connection errors, out-of-sync dialogs, personal breaks, promotional/event banners, and dangerous gem spending prompts.
-- **Technology**: `Florence2VisionEngine` in [`src/vision/florence_engine.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/florence_engine.py) with asynchronous daemon loading and resilient open-vocabulary visual grounding fallback.
+- **Technology**: `Florence2VisionEngine` in [`src/vision/florence_engine.py`](file:///src/vision/florence_engine.py) with asynchronous daemon loading and resilient open-vocabulary visual grounding fallback.
 - **Why**: Mobile games frequently display unexpected popups ("Client out of sync", "Reload Game", "Personal Break", "Another device connected", or seasonal banners with 'X' close buttons). Furthermore, accidental gem spending prompts must NEVER be confirmed blindly. Florence-2 classifies dialog semantics, locates the safe dismiss button, and halts the bot immediately if `is_dangerous=True`.
 
 ### Method 4: Multimodal Vision-Language Models (VLM Fallback)
 - **Target**: Unprecedented complex reasoning, potential state machine deadlocks (screen remaining `UNKNOWN` across $\ge 3$ consecutive ticks), account warnings, scheduled maintenance breaks, and new seasonal reward mechanics.
-- **Technology**: `MultimodalVLMEngine` in [`src/vision/vlm_engine.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/vlm_engine.py) utilizing Google Gemini 3.8 Flash (`gemini-3.8-flash`) via the `google-genai` SDK, with rate-limiting debouncing and automatic fallback to local Florence-2 dense captioning + OCR reasoning.
+- **Technology**: `MultimodalVLMEngine` in [`src/vision/vlm_engine.py`](file:///src/vision/vlm_engine.py) utilizing Google Gemini 3.8 Flash (`gemini-3.8-flash`) via the `google-genai` SDK, with rate-limiting debouncing and automatic fallback to local Florence-2 dense captioning + OCR reasoning.
 - **Why**: When heuristic and object detection pipelines cannot classify a screen, an advanced Multimodal VLM evaluates the entire 1920x1080 scene, performs semantic reasoning, determines if the state is dangerous or deadlocked, and outputs a structured Pydantic decision schema with verified normalized click coordinates.
 
 ---
@@ -97,7 +97,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   - Added logic mode toggle:
     - `ANY (OR)`: Attack if at least one selected resource meets the minimum threshold.
     - `ALL (AND)`: Attack only if all selected resources meet their thresholds simultaneously.
-  - Updated `MatchmakingEvaluator` in [`src/rules/matchmaking_evaluator.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/rules/matchmaking_evaluator.py) and added UI controls.
+  - Updated `MatchmakingEvaluator` in [`src/rules/matchmaking_evaluator.py`](file:///src/rules/matchmaking_evaluator.py) and added UI controls.
 
 ---
 
@@ -137,7 +137,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   - Added deterministic capture calls at:
     1. Matchmaking acceptance (`attack_start`)
     2. Victory/Result screen (`attack_victory`)
-  - Pointed directly to `C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\temp`.
+  - Pointed directly to `temp`.
 
 ---
 
@@ -161,7 +161,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   4. **Forbidden Red Zone Rejection**: Because Grand Warden was still selected, every tap on the enemy base core fell within the forbidden "red zone". Clash of Clans rejects hero drops inside red borders, displaying a red placement warning. Grand Warden was never dropped and remained on the ribbon.
   5. **Infinite Depletion Check Loop**: The spell loop evaluated `is_slot_greyed_out()`. Because Grand Warden's bright purple robe and yellow staff have high saturation (`mean_sat > 100`), the slot never appeared greyed out. This caused the bot to repeatedly re-select Grand Warden on the ribbon and re-click all 11-22 coordinates across the middle of the map over and over!
 - **Solution & Permanent Fix**:
-  - Implemented dynamic ribbon analysis in [`src/planning/deployment_planner.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/planning/deployment_planner.py) via `detect_army_slots(frame, configured_hero_count)`.
+  - Implemented dynamic ribbon analysis in [`src/planning/deployment_planner.py`](file:///src/planning/deployment_planner.py) via `detect_army_slots(frame, configured_hero_count)`.
   - Added a "Heroes in Army" dropdown in the GUI (`Auto-Detect`, `0`, `1`, `2`, `3`, `4 Heroes`).
   - When 2 heroes are detected:
     - Heroes are assigned strictly to Slots 2 & 3, deployed exclusively at the valid top outer grass spot (`0.606, 0.071`).
@@ -184,7 +184,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
 - **User Symptom**: "As you can see in GUI image I have set stop condition of Dark Elixir to 450K but I have reached 495K but program does not stop attack."
 - **Root Cause**: `StorageInspector.read_current_resources()` relied on `OCREngine` whose EasyOCR reader was `None`, returning `(0, 0, 0)` for current village storages. Because the parsed value was always 0, `0 >= 450,000` never evaluated to `True`.
 - **Solution**:
-  - Upgraded `StorageInspector` in [`src/vision/storage_inspector.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/storage_inspector.py) to use `SupercellGlyphReader` with white text HSV masking (`V > 175, S < 55`).
+  - Upgraded `StorageInspector` in [`src/vision/storage_inspector.py`](file:///src/vision/storage_inspector.py) to use `SupercellGlyphReader` with white text HSV masking (`V > 175, S < 55`).
   - Tested on user's home village screenshot (`media_1794113716984_6e4a709c.jpg`):
     - Gold: `20,484,511`
     - Elixir: `21,273,290`
@@ -240,7 +240,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   - Template matching cannot scale to hundreds of seasonal event banners and dynamic server messages.
   - OCR alone detects text but lacks spatial visual grounding to know where to click to safely close the modal.
 - **Solution & Engineering Implementation**:
-  - Implemented `Florence2VisionEngine` in [`src/vision/florence_engine.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/florence_engine.py) with dual-mode visual grounding:
+  - Implemented `Florence2VisionEngine` in [`src/vision/florence_engine.py`](file:///src/vision/florence_engine.py) with dual-mode visual grounding:
     1. **Neural Grounding**: Microsoft Florence-2 (`microsoft/Florence-2-base`) executing `<CAPTION_TO_PHRASE_GROUNDING>` and `<DETAILED_CAPTION>`.
     2. **Resilient Open-Vocabulary Fallback**: Integrates ONNX PP-OCRv4 with modal contrast analysis and HSV contour detection for sub-30ms execution on CPU.
   - **Dangerous Prompt Protection (`is_dangerous=True`)**:
@@ -261,7 +261,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
 - **Root Cause Analysis**:
   - The bot needs a high-level visual reasoning escalation layer that is only invoked when Tiers 1-3 fail repeatedly (streak $\ge 3$ ticks of `UNKNOWN`), keeping latency low during normal play while providing human-level reasoning when stuck.
 - **Solution & Engineering Implementation**:
-  - Built `MultimodalVLMEngine` in [`src/vision/vlm_engine.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/vlm_engine.py):
+  - Built `MultimodalVLMEngine` in [`src/vision/vlm_engine.py`](file:///src/vision/vlm_engine.py):
     1. **Primary Cloud VLM**: Google Gemini 3.8 Flash (`gemini-3.8-flash`) via the `google-genai` SDK with strict Pydantic JSON schema output (`VLMReasoningResult`).
     2. **Perceptual Frame Caching & Debouncing**: Uses downscaled MD5 frame hashing and a minimum 12-second cooldown between calls to eliminate API spam and conserve tokens.
     3. **Zero-Failure Local VLM Fallback**: When offline or if `GEMINI_API_KEY` is not configured, automatically routes through local Florence-2 dense captioning + PP-OCR semantic lexical analysis on CPU without crashing.
@@ -279,14 +279,14 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   3. "api key '<REDACTED_GEMINI_API_KEY>'"
 - **Architecture & Implementation**:
   1. **Strict Plugin Isolation**:
-     - All external cloud SDK imports (`google-genai`), API connection logic, and cloud calls are encapsulated exclusively within [`src/extensions/external_llm/`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/extensions/external_llm/).
-     - Built [`gemini_provider.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/extensions/external_llm/gemini_provider.py) providing `GeminiVLMProvider`.
+     - All external cloud SDK imports (`google-genai`), API connection logic, and cloud calls are encapsulated exclusively within [`src/extensions/external_llm/`](file:///src/extensions/external_llm/).
+     - Built [`gemini_provider.py`](file:///src/extensions/external_llm/gemini_provider.py) providing `GeminiVLMProvider`.
   2. **100% Autonomous Local Fallback**:
      - Core vision (`vlm_engine.py`) uses safe dynamic loading (`_load_external_provider`).
      - If the `src/extensions/external_llm` folder is deleted or disabled via config (`enable_external=False`), the bot operates 100% locally on Florence-2 + PaddleOCR with zero errors and zero broken imports.
   3. **Secure API Key Handling**:
-     - Configured API key in [`.env`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/.env).
-     - Added [`.gitignore`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/.gitignore) ignoring `.env`, `temp/`, and cache directories to guarantee credentials are never exposed or committed.
+     - Configured API key in [`.env`](file:///.env).
+     - Added [`.gitignore`](file:///.gitignore) ignoring `.env`, `temp/`, and cache directories to guarantee credentials are never exposed or committed.
   4. **Multi-Model Resilience & Speed**:
      - Default model configured to `gemini-3.5-flash-lite` for instant sub-second multimodal responses and high availability, with automatic failover to `gemini-3.8-flash`.
      - Verified with live end-to-end multimodal JSON structured output tests.
@@ -300,7 +300,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   2. **False-Positive `surr_conf` in YOLO Pass**: During active battle, YOLO detected `surr_conf` at norm `(0.520, 0.554)` (Town Hall / defense textures) with 96% confidence. In `state_detector.py`, if `is_end_dialog` was `False`, it unconditionally fell back to returning `UIState.SURRENDER_DIALOG` without verifying that any modal dialog or title was actually visible!
   3. **Continuous Center Base Clicking**: Because `state_detector` returned `SURRENDER_DIALOG`, the state machine entered `_handle_confirm_dialog()`, clicking `CONFIRM_OKAY_BUTTON` at `(0.520, 0.554)` over 40 times. Because Dragon Duke was selected on the ribbon, every click tapped the base with Dragon Duke selected, repeatedly triggering hero placement warnings and sounds.
 - **Engineering Solution**:
-  1. Implemented strict confirmation dialog verification in `_validate_confirmation_dialog()` in [`src/vision/state_detector.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/vision/state_detector.py):
+  1. Implemented strict confirmation dialog verification in `_validate_confirmation_dialog()` in [`src/vision/state_detector.py`](file:///src/vision/state_detector.py):
      - Requires positive template matching of `dialog_end_battle_title`, `dialog_surrender_title`, or `dialog_cancel_button` + `dialog_okay_button`, or OCR confirmation of dialog keywords (`"end battle"`, `"surrender"`, `"are you sure"`, `"cancel"`).
      - Any detection without verified modal titles is discarded as a false positive, and `CONFIRM_OKAY_BUTTON` is cleared from dynamic anchors.
   2. Added Ribbon Unit Deselection in Phase 8 of `_execute_full_deployment`:
@@ -315,7 +315,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
   1. In `state_machine.py`, Phase 1 previously had a hardcoded `tap_count=10`.
   2. With 1 probe troop dropped + 10 taps, only 11 Valkyries were deployed initially. For a 42-Valkyrie army, this left 31 Valkyries deployed in Phase 4 instead of deploying 50% (21 troops) first.
 - **Engineering Solution**:
-  1. Added `read_slot_unit_count(frame_bgr, slot_idx)` in [`src/planning/deployment_planner.py`](file:///C:/Users/ayush/.gemini/antigravity/scratch/coc-farming-controller/src/planning/deployment_planner.py):
+  1. Added `read_slot_unit_count(frame_bgr, slot_idx)` in [`src/planning/deployment_planner.py`](file:///src/planning/deployment_planner.py):
      - Extracts the quantity badge at the top of the slot card (`y: 0.820-0.875`, centered on slot `nx`).
      - Uses PaddleOCR to read unit counts (e.g. `'x42'` -> `42`, `'x11'` -> `11`).
   2. Dynamic Initial Wave Calculation:
@@ -401,7 +401,7 @@ To guarantee maximum speed, zero hallucinations, and total game awareness withou
 | **Storage DE Reading** | `StorageInspector.read_current_resources()` | Reads 495,528 Dark Elixir | `(20484511, 21273290, 495528)` | **PASSED** |
 | **Storage Auto-Stop** | Max DE 450,000 condition check | `495,528 >= 450,000 -> True` | `True` (auto-stop fires) | **PASSED** |
 | **Victory Loot Sum** | 18 victory screenshots in `temp/` | ~19.5M Gold | `19,602,048` Gold | **PASSED** |
-| **Player Name OCR** | PP-OCRv4 on Home Village | Detects "AYUSHSTK" | `'AYUSHSTK'` (conf=0.88) | **PASSED** |
+| **Player Name OCR** | PP-OCRv4 on Home Village | Detects "CLASHPLAYER" | `'CLASHPLAYER'` (conf=0.88) | **PASSED** |
 | **Clan Name OCR** | PP-OCRv4 on Home Village | Detects "SpecialForces" | `'SpecialForces'` (conf=0.88) | **PASSED** |
 | **Opponent Matchmaking** | PP-OCRv4 on Attack Screen | Detects "Gabbi." & clan | `'Gabbi.'`, `"(VallHalla'BR)"` | **PASSED** |
 | **Button Locator** | `find_text("Shop")`, `find_text("Battle")` | Accurate pixel coordinates | `(972, 312)`, `(68, 550)` | **PASSED** |

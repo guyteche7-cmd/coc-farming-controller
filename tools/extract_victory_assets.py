@@ -2,9 +2,9 @@ import os
 import cv2
 import numpy as np
 
-img_active_win = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787425068791.jpg")
-img_end_dialog = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787425068743.jpg")
-img_victory = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787425068758.jpg")
+img_active_win = cv2.imread(r"assets/reference/media_1787425068791.jpg")
+img_end_dialog = cv2.imread(r"assets/reference/media_1787425068743.jpg")
+img_victory = cv2.imread(r"assets/reference/media_1787425068758.jpg")
 
 # Save reference full screens
 cv2.imwrite("assets/test_cases/screen_10_active_battle_win.png", img_active_win)

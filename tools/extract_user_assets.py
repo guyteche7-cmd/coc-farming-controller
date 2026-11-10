@@ -3,10 +3,10 @@ import cv2
 import numpy as np
 
 # Load the user images
-img_home = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423034479.jpg")
-img_attack_menu = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423034404.jpg")
-img_my_army = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423139039.png")
-img_clouds = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423300906.png")
+img_home = cv2.imread(r"assets/reference/media_1787423034479.jpg")
+img_attack_menu = cv2.imread(r"assets/reference/media_1787423034404.jpg")
+img_my_army = cv2.imread(r"assets/reference/media_1787423139039.png")
+img_clouds = cv2.imread(r"assets/reference/media_1787423300906.png")
 
 os.makedirs("assets/ui", exist_ok=True)
 os.makedirs("assets/army", exist_ok=True)

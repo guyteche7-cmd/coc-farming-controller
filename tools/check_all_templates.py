@@ -2,11 +2,11 @@ import cv2
 import glob
 
 full_screens = [
-    r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787426597559.jpg",
-    r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423034404.jpg",
-    r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423139039.png",
-    r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423300906.png",
-    r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423708404.png",
+    r"assets/reference/media_1787426597559.jpg",
+    r"assets/reference/media_1787423034404.jpg",
+    r"assets/reference/media_1787423139039.png",
+    r"assets/reference/media_1787423300906.png",
+    r"assets/reference/media_1787423708404.png",
 ]
 
 for p in full_screens:

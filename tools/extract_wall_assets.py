@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-img_chart = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787426237763.png")
+img_chart = cv2.imread(r"assets/reference/media_1787426237763.png")
 os.makedirs("assets/walls", exist_ok=True)
 
 h, w, _ = img_chart.shape

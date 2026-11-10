@@ -2,8 +2,8 @@ import os
 import cv2
 import numpy as np
 
-img_candidate = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423558078.jpg")
-img_clouds_transition = cv2.imread(r"C:/Users/ayush/.gemini/antigravity/brain/ee06cf55-ba4c-4e33-9044-86a7acf46bc2/.user_uploaded/media_1787423708404.png")
+img_candidate = cv2.imread(r"assets/reference/media_1787423558078.jpg")
+img_clouds_transition = cv2.imread(r"assets/reference/media_1787423708404.png")
 
 h, w, _ = img_candidate.shape
 print(f"Candidate screen shape: {w}x{h}")

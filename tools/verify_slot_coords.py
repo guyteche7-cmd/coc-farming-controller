@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-img_path = r"C:\Users\ayush\.gemini\antigravity\scratch\coc-farming-controller\temp\deployment_pattern.png"
+img_path = r"temp\deployment_pattern.png"
 img = cv2.imread(img_path)
 h, w, _ = img.shape
 print(f"Image size: {w}x{h}")
