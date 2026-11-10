@@ -1,0 +1,129 @@
+> [!WARNING]
+> **HISTORICAL DOCUMENT � NOT CURRENT SOURCE OF TRUTH**
+> This document represents earlier Builder Base planning and may contain requirements that have since changed.
+
+================================================================================
+BUILDER BASE 2.0 AUTOMATION MODULE - ARCHITECTURAL PLAN (plan.txt)
+================================================================================
+
+1. MODULE OBJECTIVE & INDEPENDENCE
+--------------------------------------------------------------------------------
+- Create a fully self-contained directory `builderBase/` inside the project.
+- No modifications to existing main village code that would cause breaking changes.
+- If `builderBase/` is deleted, the main village farming controller (`run_coc_bot.bat`)
+  continues to function 100% properly without errors.
+- A dedicated standalone launcher `run_bb_bot.bat` will start the Builder Base bot.
+- Shared infrastructure utilities (e.g. screen capture, win32 input adapter, window calibrator)
+  can be imported cleanly from `src.` with fallback guards.
+
+2. BUILDER BASE 2.0 GAMEPLAY SPECIFICATIONS
+--------------------------------------------------------------------------------
+A. Flow & State Transitions:
+   1. BB_HOME (Builder Base Home Village)
+      - Detect bottom-left "Attack!" crossed axes button.
+      - Click "Attack!" button at norm (0.055, 0.885).
+   2. BB_START_ATTACK_MODAL (Popup: "Start Attack")
+      - Detect modal titled "Start Attack" with troop lineup & "Iron League III".
+      - Click green "Find Now!" button at norm (0.740, 0.611).
+   3. BB_MATCHMAKING ("Searching for opponents...")
+      - Detect clouds/searching screen with spinning magnifying glass.
+      - Wait until opponent base is loaded.
+   4. BB_STAGE1_BATTLE (Stage 1 Opponent Base)
+      - 6 Troop Slots (1-6) + 1 Hero Slot (Slot 0, far left).
+      - Deploy Hero at designated spot (black dot on top-right perimeter: norm 0.776, 0.102).
+      - Deploy Troop Slots 1 -> 6 sequentially at the deployment spot.
+      - Trigger Hero Ability (Battle Machine Electric Hammer) whenever charged (or after deployment).
+   5. BB_STAGE_TRANSITION (Stage 1 Complete -> Stage 2 Auto-Advance)
+      - When Stage 1 base is destroyed or army clears, game automatically transitions to Stage 2.
+   6. BB_STAGE2_BATTLE (Stage 2 Opponent Base)
+      - 8 Troop Slots (1-6 surviving + 7-8 Reinforcements).
+      - Deploy Reinforcements (Slots 7 and 8) + any remaining units at deployment spot.
+      - Trigger Hero Ability when active.
+   7. BB_BATTLE_EXIT / SURRENDER / END BATTLE
+      - Condition: all buildings destroyed (100%/200%) OR all troops expended OR user timer.
+      - If < 50% damage: Click "Surrender" at norm (0.072, 0.644) -> Click "Okay" at norm (0.594, 0.593).
+      - If >= 50% damage / 1+ Star: Click "End Battle" at norm (0.072, 0.644) -> Click "Okay" at norm (0.594, 0.593).
+   8. BB_RESULT_SCREEN (Battle Rewards & Stars)
+      - Detect result screen with stars, damage %, and "Return Home" button.
+      - Click "Return Home" button at norm (0.500, 0.783).
+      - Return to BB_HOME and repeat according to attack count settings.
+
+3. DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+builderBase/
+├── plan.txt                           <- This master plan
+├── README.md                          <- Module documentation & usage instructions
+├── run_bb_bot.bat                     <- Standalone batch launcher
+├── config/
+│   └── bb_config.yaml                 <- BB-specific configuration (delays, edge, attack count)
+├── assets/
+│   ├── ui/                            <- UI templates (buttons, headers, modals)
+│   │   ├── attack_button.png
+│   │   ├── find_now_button.png
+│   │   ├── searching_opponents.png
+│   │   ├── surrender_button.png
+│   │   ├── end_battle_button.png
+│   │   ├── dialog_okay_button.png
+│   │   ├── return_home_button.png
+│   │   └── star_bonus_bar.png
+│   ├── heroes/                        <- Hero icons (active & charging/greyed)
+│   │   ├── battle_machine.png
+│   │   ├── battle_machine_active.png
+│   │   ├── battle_machine_greyed.png
+│   │   ├── battle_copter.png
+│   │   └── battle_copter_greyed.png
+│   └── troops/                        <- All Builder Base troop icons
+│       ├── super_pekka.png
+│       ├── night_witch.png
+│       ├── raged_barbarian.png
+│       ├── sneaky_archer.png
+│       ├── boxer_giant.png
+│       ├── beta_minion.png
+│       ├── bomber.png
+│       ├── baby_dragon.png
+│       ├── cannon_cart.png
+│       ├── drop_ship.png
+│       ├── hog_glider.png
+│       └── electrofire_wizard.png
+└── src/
+    ├── __init__.py
+    ├── bb_config_manager.py           <- Loads and saves bb_config.yaml
+    ├── bb_state_detector.py           <- Recognizes all BB UI states & dynamic anchors
+    ├── bb_deployment_planner.py       <- Generates BB deployment plans (Hero -> Troops -> Reinforcements)
+    ├── bb_battle_evaluator.py         <- Evaluates exit conditions (Surrender vs End Battle vs Auto-Finish)
+    ├── bb_state_machine.py            <- State Machine orchestrator for BB attack cycles
+    ├── bb_session_controller.py       <- Top-level controller managing live input & loop
+    └── bb_gui.py                      <- Standalone GUI dashboard for Builder Base
+
+4. DEVELOPMENT PHASES
+--------------------------------------------------------------------------------
+- PHASE 1: Assets Acquisition & Directory Setup
+  * Create folder hierarchy.
+  * Search, download, crop, and normalize all BB troop icons and hero icons (active & charging).
+  * Extract UI templates from user reference screenshots in `temp/`.
+
+- PHASE 2: State Detection Engine (`bb_state_detector.py`)
+  * Implement template & OCR detection for:
+    - BB_HOME
+    - BB_START_ATTACK_MODAL
+    - BB_MATCHMAKING
+    - BB_STAGE1_BATTLE
+    - BB_STAGE2_BATTLE
+    - BB_CONFIRM_DIALOG (Surrender? / End Battle?)
+    - BB_RESULT_SCREEN
+  * Test on all 15 reference screenshots in `temp/`.
+
+- PHASE 3: Deployment Planner & Battle Evaluator (`bb_deployment_planner.py`, `bb_battle_evaluator.py`)
+  * Support top-right perimeter click (norm 0.776, 0.102) and slot keybindings (Q for Hero, 1-8 for troops).
+  * Ability trigger cadence for Battle Machine / Battle Copter.
+  * Exit decision logic (Surrender vs End Battle vs Return Home).
+
+- PHASE 4: State Machine & Session Controller (`bb_state_machine.py`, `bb_session_controller.py`)
+  * Full cycle automation: Home -> Find Now -> Stage 1 Attack -> Stage 2 Attack -> Return Home.
+  * Attack count tracking (fixed count or continuous).
+
+- PHASE 5: Standalone GUI & Launcher (`bb_gui.py`, `run_bb_bot.bat`)
+  * Sleek CustomTkinter UI for Builder Base with live logs, stats, and controls.
+  * Comprehensive end-to-end testing with mock and live frames.
+================================================================================
+

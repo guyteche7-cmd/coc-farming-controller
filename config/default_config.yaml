@@ -1,0 +1,92 @@
+version: 1
+mode: infinite
+fixed_attack_count: 12
+window:
+  title_pattern: Google Play Games|Clash of Clans|BlueStacks|LDPlayer|Nox|MuMu|HD-Player
+  target_resolution:
+  - 1920
+  - 1080
+  expected_scaling: 1.0
+  fullscreen_preferred: true
+  auto_focus: true
+target:
+  expression: gold >= 1000000 OR gold + elixir >= 1500000
+  match_mode: OR
+  watch_gold: true
+  min_gold: 1200000
+  watch_elixir: true
+  min_elixir: 1200000
+  watch_dark_elixir: false
+  min_dark_elixir: 12000
+  watch_combined: false
+  min_combined: 1500000
+  dark_elixir:
+    enabled: false
+    minimum: 10000
+  max_consecutive_skips: 500
+  skip_delay_seconds: 0.5
+  min_ocr_confidence: 0.7
+deployment:
+  selected_edge: top
+  tap_delay_seconds: 0.05
+  hero_tap_delay_seconds: 0.3
+  spell_tap_delay_seconds: 0.2
+  army:
+    troops:
+    - name: electro_dragon
+      expected_quantity: 16
+      pattern: line_distribute
+    spells:
+    - name: earthquake
+      expected_quantity: 11
+      pattern: randomized_targets
+    siege:
+    - name: battle_blimp
+      expected_quantity: 1
+    heroes:
+    - name: dragon_duke
+    - name: archer_queen
+    - name: grand_warden
+    - name: minion_prince
+    clan_castle: false
+  hero_count: -1
+  hero_ability_delay_seconds: 6.0
+  deploy_siege: true
+  deploy_spells: true
+exit:
+  combat_timer_seconds: 150
+  max_combat_timer_seconds: 150
+  damage_threshold_percent: 100.0
+  loot_collected_percent: 85.0
+  surrender_threshold_seconds: 60
+  poll_interval_seconds: 1.0
+walls:
+  enabled: false
+  builder_required: true
+  storage_threshold_percent: 80.0
+  prefer_batch_selection: true
+  max_upgrades_per_cycle: 50
+storage_limit:
+  enabled: true
+  stop_when_full: true
+  match_mode: AND
+  max_gold: 30000000
+  max_elixir: 30000000
+  max_dark_elixir: 450000
+  check_gold: true
+  check_elixir: true
+  check_dark_elixir: false
+  full_threshold_percent: 98.0
+  require_both_full: true
+safety:
+  humanize_mouse_movement: true
+  emergency_stop_hotkey: f10
+  pause_resume_hotkey: f9
+  save_failure_screenshots: true
+  failure_screenshot_dir: data/diagnostics
+  state_transition_timeout_seconds: 15.0
+logging:
+  level: INFO
+  log_to_file: true
+  log_file: data/coc_farming.log
+  database_file: data/farming_history.db

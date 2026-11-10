@@ -1,0 +1,17 @@
+mode: fixed_attacks
+fixed_attack_count: 10
+deployment:
+  default_point:
+  - 0.776
+  - 0.102
+  tap_delay_seconds: 0.1
+  slot_delay_seconds: 0.3
+  hero_ability_check_interval: 2.5
+exit:
+  combat_timer_seconds: 60
+  max_combat_timer_seconds: 150
+  auto_exit_on_destruction: true
+safety:
+  humanize_mouse_movement: true
+  emergency_stop_hotkey: f10
+  pause_resume_hotkey: f9

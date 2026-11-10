@@ -1,0 +1,47 @@
+# =====================================================================
+# Clash of Clans Autonomous Farming Controller - Git Ignore Configuration
+# =====================================================================
+
+# Environment Variables & Secrets (CRITICAL: Never commit API keys!)
+.env
+*.env
+data/secrets/
+
+# Python Bytecode & Runtime Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing & Coverage Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Databases, Logs & Runtime State
+*.db
+*.sqlite3
+*.log
+latest_attack.log
+
+# Temporary Screenshots & Dumps (Keep directory tracked via .gitkeep)
+temp/*
+!temp/.gitkeep
+temp_*.png
+scratch/
+data/diagnostics/
+
+# IDE, OS & Editor Artifacts
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+desktop.ini

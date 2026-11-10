@@ -1,0 +1,37 @@
+# =====================================================================
+# Clash of Clans Autonomous Farming Controller - Dependencies
+# Python 3.10 - 3.14 on Windows 10/11 (64-bit)
+# =====================================================================
+
+# GUI & Desktop Styling
+customtkinter>=5.2.0
+pillow>=10.0.0
+
+# Computer Vision & High-Speed OCR Perception
+opencv-python>=4.8.0
+numpy>=1.24.0
+rapidocr-onnxruntime>=1.3.0
+onnxruntime>=1.16.0
+
+# Screen Capture, Windowing & Input Automation
+mss>=9.0.0
+pyautogui>=0.9.54
+pygetwindow>=0.0.9
+pywin32>=306
+keyboard>=0.13.5
+
+# Configuration & Data Validation
+pydantic>=2.0.0
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+
+# Multimodal VLM Escalation (Google Gemini API - Optional)
+google-genai>=0.1.0
+
+# Unit Testing & Quality Assurance
+pytest>=7.0.0
+
+# Optional Deep Learning Packages (for Local Florence-2 GPU/CPU Inference)
+# torch>=2.0.0
+# torchvision>=0.15.0
+# transformers>=4.38.0
