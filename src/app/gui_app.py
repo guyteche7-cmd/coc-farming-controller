@@ -55,8 +55,27 @@ class DashboardApp(ctk.CTk):
         self._build_ui()
         self._poll_ui_telemetry()
 
+        # macOS Tkinter initial render workaround (forces Cocoa window server to paint canvas)
+        if sys.platform == "darwin":
+            self.after(100, self._macos_force_paint)
+
         # Pre-warm vision models (EasyOCR, YOLOv8) in background so session start is instant
         threading.Thread(target=self._prewarm_vision_models, daemon=True).start()
+
+    def _macos_force_paint(self) -> None:
+        """Forces macOS Cocoa window server to redraw widgets instead of staying blank/black."""
+        try:
+            self.update_idletasks()
+            self.lift()
+            self.attributes('-topmost', True)
+            self.after(20, lambda: self.attributes('-topmost', False))
+            # Minor geometry toggle to trigger Cocoa buffer swap
+            w, h = self.winfo_width(), self.winfo_height()
+            if w > 10 and h > 10:
+                self.geometry(f"{w+1}x{h}")
+                self.after(10, lambda: self.geometry(f"{w}x{h}"))
+        except Exception as e:
+            logger.debug(f"macOS paint trigger: {e}")
 
     def _prewarm_vision_models(self) -> None:
         try:
