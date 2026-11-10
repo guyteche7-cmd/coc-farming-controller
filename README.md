@@ -182,7 +182,7 @@ python3 -m src.app.main
 1. **Start your Emulator** (BlueStacks on macOS / LDPlayer or BlueStacks on Windows) and open Clash of Clans to your Home Village.
 2. Launch the Farming Controller using `run_bot.bat` (Windows) or `./run_bot.sh` (macOS).
 3. In the GUI:
-   - Click **`🎯 Bind Game Window (F7)`** to focus and lock onto your emulator window.
+   - Click **`🎯 Bind Game Window`** (or press **`⌘B`** on Mac / **`F7`** on Windows) to focus and lock onto your emulator window.
    - Adjust your target loot thresholds:
      - **Min Gold**: e.g. `400,000`
      - **Min Elixir**: e.g. `400,000`
@@ -190,12 +190,14 @@ python3 -m src.app.main
      - **Hero Count**: Select how many heroes are currently active (e.g. `2`, `3`, or `4`).
      - **Deploy Siege**: Check to deploy your Clan Castle / Siege Machine.
 4. (Optional) Set your **Storage Limits** (e.g. Stop if Dark Elixir reaches `450,000`).
-5. Click **▶ Start Farming (F8)**.
-6. **Hotkeys**:
-   - **`F7`**: Bind game window.
-   - **`F8`**: Start / Stop farming.
-   - **`F9`**: Pause / Resume.
-   - **`F10`**: Emergency Stop.
+5. Click **▶ Start Farming** (or use the top header Quick Action buttons).
+6. **Keyboard Shortcuts**:
+   | Action | 🍎 macOS Shortcut | 🪟 Windows Shortcut | Top Header Button |
+   | :--- | :--- | :--- | :--- |
+   | **Start / Stop** | **`⌘R`** (Cmd+R) | **`F8`** or **`Ctrl+R`** | `[▶ Start]` / `[⏹ Stop]` |
+   | **Pause / Resume** | **`⌘P`** (Cmd+P) | **`F9`** or **`Ctrl+P`** | `[⏸ Pause]` / `[▶ Resume]` |
+   | **Bind Window** | **`⌘B`** (Cmd+B) | **`F7`** or **`Ctrl+B`** | `[◎ Bind]` |
+   | **Emergency Safe Stop** | **`Esc`** or **`⌘.`** | **`F10`** or **`Esc`** | `[🛑 Stop]` |
 
 ---
 

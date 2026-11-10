@@ -11,21 +11,45 @@ echo " Clash of Clans Autonomous Farming Controller - macOS Launcher"
 echo "====================================================================="
 echo ""
 
-# 1. Detect Python 3.10+
+# 1. Detect Python 3.10+ (Prioritize Homebrew and python.org frameworks ahead of macOS system Python)
+CANDIDATES=(
+    "/opt/homebrew/bin/python3.12"
+    "/opt/homebrew/bin/python3.11"
+    "/opt/homebrew/bin/python3.10"
+    "/opt/homebrew/bin/python3"
+    "/usr/local/bin/python3.12"
+    "/usr/local/bin/python3.11"
+    "/usr/local/bin/python3.10"
+    "/usr/local/bin/python3"
+    "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
+    "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"
+    "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3"
+    "python3"
+    "python"
+)
+
 PY_CMD=""
-if command -v python3 >/dev/null 2>&1; then
-    PY_CMD="python3"
-elif command -v python >/dev/null 2>&1; then
-    PY_CMD="python"
-fi
+for cand in "${CANDIDATES[@]}"; do
+    if command -v "$cand" >/dev/null 2>&1; then
+        if "$cand" -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >/dev/null 2>&1; then
+            PY_CMD="$cand"
+            break
+        fi
+    fi
+done
 
 if [ -z "$PY_CMD" ]; then
-    echo "[ERROR] Python was not found on your system!"
-    echo "Please install Python 3.10+ via Homebrew or from python.org:"
+    echo "[ERROR] Python 3.10+ was not found on your system!"
+    echo "macOS system Python (/usr/bin/python3) is outdated and has known Tcl/Tk GUI display bugs."
+    echo "Please install modern Python 3.11+ via Homebrew or from python.org:"
     echo "  brew install python@3.11"
+    echo "Or download the official installer from: https://www.python.org/downloads/macos/"
     echo ""
     exit 1
 fi
+
+# Silence legacy macOS Tkinter deprecation popup
+export TK_SILENCE_DEPRECATION=1
 
 echo "[1/2] Verifying Python environment ($($PY_CMD --version))..."
 

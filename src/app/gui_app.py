@@ -7,6 +7,10 @@ voice & audio alerts, target rule editing, and live session telemetry.
 from __future__ import annotations
 import os
 import sys
+
+# Silence macOS legacy Tk deprecation notice that can freeze/delay window painting
+os.environ["TK_SILENCE_DEPRECATION"] = "1"
+
 import time
 import threading
 import logging
@@ -27,6 +31,41 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 
+def safe_text(text: str) -> str:
+    """
+    Sanitizes strings for macOS Tkinter.
+    macOS Tcl/Tk (compiled with TCL_UTF_MAX=3) fails on non-BMP Unicode characters (>0xFFFF).
+    Replaces 4-byte emojis with clean standard symbols on macOS while preserving rich styling on Windows.
+    """
+    if sys.platform != "darwin":
+        return text
+    replacements = {
+        "⚔️": "[⚔]", "⚔": "[⚔]",
+        "🏰": "[Home]", "🔨": "[Builder]",
+        "🎯": "◎",
+        "🛑": "[STOP]",
+        "💰": "[$]",
+        "📜": "[Logs]",
+        "📋": "[Audit]",
+        "🟡": "●",
+        "🟣": "●",
+        "⚫": "●",
+        "⏱️": "⏱", "⏱": "⏱",
+        "⚡": "⚡",
+        "▶": "▶",
+        "⏸": "⏸",
+        "⏹": "⏹",
+        "📍": "•",
+        "⌨": "⌨",
+        "⚠️": "[!]",
+    }
+    cleaned = text
+    for emoji, repl in replacements.items():
+        cleaned = cleaned.replace(emoji, repl)
+    # Strip any remaining characters outside the Basic Multilingual Plane (U+0000 to U+FFFF)
+    return "".join(c for c in cleaned if ord(c) <= 0xFFFF).strip()
+
+
 class DashboardApp(ctk.CTk):
     """Main CustomTkinter application window."""
 
@@ -38,8 +77,10 @@ class DashboardApp(ctk.CTk):
         self.notifier = Notifier(voice_enabled=True, sounds_enabled=True)
 
         self.title("CoC Auto Farm Dashboard — Version 1 (AI Hybrid Edition)")
-        self.geometry("1020x700")
-        self.minsize(920, 620)
+        win_w = 1120 if sys.platform == "darwin" else 1040
+        win_h = 740 if sys.platform == "darwin" else 700
+        self.geometry(f"{win_w}x{win_h}")
+        self.minsize(980, 640)
 
         self.controller = SessionController(
             config_manager=self.config_manager,
@@ -53,29 +94,57 @@ class DashboardApp(ctk.CTk):
         )
 
         self._build_ui()
+        self._bind_keyboard_shortcuts()
         self._poll_ui_telemetry()
 
-        # macOS Tkinter initial render workaround (forces Cocoa window server to paint canvas)
+        # macOS Tkinter initial render workaround (forces Cocoa window server to paint canvas & calculate layouts)
         if sys.platform == "darwin":
             self.after(100, self._macos_force_paint)
+            self.after(300, self._macos_force_paint)
 
         # Pre-warm vision models (EasyOCR, YOLOv8) in background so session start is instant
         threading.Thread(target=self._prewarm_vision_models, daemon=True).start()
 
     def _macos_force_paint(self) -> None:
-        """Forces macOS Cocoa window server to redraw widgets instead of staying blank/black."""
+        """Forces macOS Cocoa window server to redraw widgets and recalculate scrollable canvas frames."""
         try:
             self.update_idletasks()
+            self.deiconify()
             self.lift()
-            self.attributes('-topmost', True)
-            self.after(20, lambda: self.attributes('-topmost', False))
-            # Minor geometry toggle to trigger Cocoa buffer swap
-            w, h = self.winfo_width(), self.winfo_height()
-            if w > 10 and h > 10:
-                self.geometry(f"{w+1}x{h}")
-                self.after(10, lambda: self.geometry(f"{w}x{h}"))
+            if hasattr(self, "sidebar") and hasattr(self.sidebar, "_parent_canvas"):
+                self.sidebar._parent_canvas.event_generate("<Configure>")
+                self.sidebar._parent_canvas.yview_moveto(0)
+            self.update()
         except Exception as e:
             logger.debug(f"macOS paint trigger: {e}")
+
+    def _bind_keyboard_shortcuts(self) -> None:
+        """Binds native macOS Command shortcuts and universal F-keys to dashboard actions."""
+        # 1. Mac Command shortcuts (⌘R Start/Stop, ⌘P Pause, ⌘B Bind, Esc Safe Stop)
+        self.bind_all("<Command-r>", lambda e: self._toggle_farming_session())
+        self.bind_all("<Command-R>", lambda e: self._toggle_farming_session())
+        self.bind_all("<Command-p>", lambda e: self._handle_pause_action())
+        self.bind_all("<Command-P>", lambda e: self._handle_pause_action())
+        self.bind_all("<Command-b>", lambda e: self._bind_game_window_interactive())
+        self.bind_all("<Command-B>", lambda e: self._bind_game_window_interactive())
+        self.bind_all("<Command-period>", lambda e: self._handle_stop_action())
+
+        # 2. Universal Escape key (Immediate Emergency Safe Stop)
+        self.bind_all("<Escape>", lambda e: self._handle_stop_action())
+
+        # 3. Windows / PC Control shortcuts (Ctrl+R, Ctrl+P, Ctrl+B)
+        self.bind_all("<Control-r>", lambda e: self._toggle_farming_session())
+        self.bind_all("<Control-R>", lambda e: self._toggle_farming_session())
+        self.bind_all("<Control-p>", lambda e: self._handle_pause_action())
+        self.bind_all("<Control-P>", lambda e: self._handle_pause_action())
+        self.bind_all("<Control-b>", lambda e: self._bind_game_window_interactive())
+        self.bind_all("<Control-B>", lambda e: self._bind_game_window_interactive())
+
+        # 4. Standard Function Keys (F7 Bind, F8 Start/Stop, F9 Pause, F10 Stop)
+        self.bind_all("<F7>", lambda e: self._bind_game_window_interactive())
+        self.bind_all("<F8>", lambda e: self._toggle_farming_session())
+        self.bind_all("<F9>", lambda e: self._handle_pause_action())
+        self.bind_all("<F10>", lambda e: self._handle_stop_action())
 
     def _prewarm_vision_models(self) -> None:
         try:
@@ -87,27 +156,29 @@ class DashboardApp(ctk.CTk):
             logger.warning(f"Vision pre-warm notice: {e}")
 
     def _build_ui(self) -> None:
-        self.grid_columnconfigure(0, weight=0, minsize=320)
+        sidebar_min_w = 340 if sys.platform == "darwin" else 320
+        sidebar_w = 330 if sys.platform == "darwin" else 300
+        self.grid_columnconfigure(0, weight=0, minsize=sidebar_min_w)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         # ----------------- SIDEBAR (Controls & Config - Scrollable) -----------------
-        sidebar = ctk.CTkScrollableFrame(
+        self.sidebar = ctk.CTkScrollableFrame(
             self,
-            width=300,
+            width=sidebar_w,
             corner_radius=10,
             fg_color="#1e1e24",
             scrollbar_button_color="#3f3f46",
             scrollbar_button_hover_color="#52525b"
         )
-        sidebar.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
-        sidebar.grid_columnconfigure(0, weight=1)
-
+        self.sidebar.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        self.sidebar.grid_columnconfigure(0, weight=1)
+        sidebar = self.sidebar
 
         # App Title
-        lbl_title = ctk.CTkLabel(sidebar, text="⚔️ CoC Farm Controller", font=ctk.CTkFont(size=20, weight="bold"))
+        lbl_title = ctk.CTkLabel(sidebar, text=safe_text("⚔️ CoC Farm Controller"), font=ctk.CTkFont(size=20, weight="bold"))
         lbl_title.grid(row=0, column=0, pady=(16, 2), padx=16, sticky="w")
-        lbl_sub = ctk.CTkLabel(sidebar, text="Google Play Games on PC (Client Area Mode)", font=ctk.CTkFont(size=12), text_color="#9ca3af")
+        lbl_sub = ctk.CTkLabel(sidebar, text="Google Play Games / BlueStacks / LDPlayer", font=ctk.CTkFont(size=12), text_color="#9ca3af")
         lbl_sub.grid(row=1, column=0, pady=(0, 10), padx=16, sticky="w")
 
         # Village Switcher: [ 🏰 Home Village ]  [ 🔨 Builder Base ]
@@ -115,10 +186,14 @@ class DashboardApp(ctk.CTk):
         self.bb_config_manager = None
         self.bb_controller = None
 
-        self.village_mode_var = ctk.StringVar(value="🏰 Home Village")
+        home_opt = "Home Village" if sys.platform == "darwin" else "🏰 Home Village"
+        bb_opt = "Builder Base" if sys.platform == "darwin" else "🔨 Builder Base"
+        self.village_options = [home_opt, bb_opt]
+
+        self.village_mode_var = ctk.StringVar(value=home_opt)
         self.village_switcher = ctk.CTkSegmentedButton(
             sidebar,
-            values=["🏰 Home Village", "🔨 Builder Base"],
+            values=self.village_options,
             variable=self.village_mode_var,
             command=self._on_village_mode_change,
             height=32,
@@ -139,9 +214,10 @@ class DashboardApp(ctk.CTk):
         )
         self.lbl_win_status.grid(row=0, column=0, padx=10, pady=(6, 2), sticky="w")
 
+        bind_btn_txt = "◎ Bind Game Window (⌘B)" if sys.platform == "darwin" else "🎯 Bind Game Window (F7)"
         btn_bind_win = ctk.CTkButton(
             win_card,
-            text="🎯 Bind Game Window (F7)",
+            text=bind_btn_txt,
             height=28,
             fg_color="#0284c7",
             hover_color="#0369a1",
@@ -197,7 +273,7 @@ class DashboardApp(ctk.CTk):
         loot_card.grid(row=3, column=0, padx=16, pady=(2, 8), sticky="ew")
         loot_card.grid_columnconfigure(1, weight=1)
 
-        lbl_loot_hdr = ctk.CTkLabel(loot_card, text="🎯 Target Loot Criteria:", font=ctk.CTkFont(size=13, weight="bold"))
+        lbl_loot_hdr = ctk.CTkLabel(loot_card, text=safe_text("🎯 Target Loot Criteria:"), font=ctk.CTkFont(size=13, weight="bold"))
         lbl_loot_hdr.grid(row=0, column=0, columnspan=2, padx=10, pady=(6, 2), sticky="w")
 
         curr_mode = getattr(self.config.target, "match_mode", "OR").upper()
@@ -266,7 +342,7 @@ class DashboardApp(ctk.CTk):
         exit_card.grid_columnconfigure(0, weight=1)
         exit_card.grid_columnconfigure(1, weight=0)
 
-        lbl_exit_title = ctk.CTkLabel(exit_card, text=" Combat Exit Criteria:", font=ctk.CTkFont(size=12, weight="bold"))
+        lbl_exit_title = ctk.CTkLabel(exit_card, text=safe_text("⏱ Combat Exit Criteria:"), font=ctk.CTkFont(size=12, weight="bold"))
         lbl_exit_title.grid(row=0, column=0, columnspan=2, padx=(10, 4), pady=(6, 4), sticky="w")
 
         # 1. Timer
@@ -314,7 +390,7 @@ class DashboardApp(ctk.CTk):
         storage_card.grid_columnconfigure(0, weight=1)
         storage_card.grid_columnconfigure(1, weight=0)
 
-        lbl_storage_title = ctk.CTkLabel(storage_card, text="🛑 Storage Limit (Auto-Stop):", font=ctk.CTkFont(size=12, weight="bold"))
+        lbl_storage_title = ctk.CTkLabel(storage_card, text=safe_text("🛑 Storage Limit (Auto-Stop):"), font=ctk.CTkFont(size=12, weight="bold"))
         lbl_storage_title.grid(row=0, column=0, columnspan=2, padx=(10, 4), pady=(6, 2), sticky="w")
 
         self.chk_storage_limit_var = ctk.BooleanVar(value=getattr(self.config.storage_limit, "enabled", True))
@@ -397,7 +473,7 @@ class DashboardApp(ctk.CTk):
         deploy_card.grid_columnconfigure(0, weight=1)
         deploy_card.grid_columnconfigure(1, weight=0)
 
-        lbl_deploy_title = ctk.CTkLabel(deploy_card, text="⚔ Army & Heroes Setup:", font=ctk.CTkFont(size=12, weight="bold"))
+        lbl_deploy_title = ctk.CTkLabel(deploy_card, text=safe_text("⚔ Army & Heroes Setup:"), font=ctk.CTkFont(size=12, weight="bold"))
         lbl_deploy_title.grid(row=0, column=0, columnspan=2, padx=(10, 4), pady=(6, 2), sticky="w")
 
         # 1. Hero Count Selector
@@ -490,7 +566,7 @@ class DashboardApp(ctk.CTk):
 
         lbl_bb_deploy_info = ctk.CTkLabel(
             bb_info_card,
-            text="📍 Deployment Strategy:\n• Point: Top-Right Perimeter (0.776, 0.102)\n• Dynamic BH Army Slots (1..8 auto-scan)\n• Hero Ability Auto-Cadence (Battle Machine)\n• Multi-Stage 1 & 2 Auto-Advance",
+            text=safe_text("📍 Deployment Strategy:\n• Point: Top-Right Perimeter (0.776, 0.102)\n• Dynamic BH Army Slots (1..8 auto-scan)\n• Hero Ability Auto-Cadence (Battle Machine)\n• Multi-Stage 1 & 2 Auto-Advance"),
             font=ctk.CTkFont(size=11),
             text_color="#38bdf8",
             justify="left"
@@ -503,7 +579,7 @@ class DashboardApp(ctk.CTk):
         bb_timer_card.grid_columnconfigure(0, weight=1)
         bb_timer_card.grid_columnconfigure(1, weight=0)
 
-        lbl_bb_timer_title = ctk.CTkLabel(bb_timer_card, text="⏱️ BB Combat Exit Timer:", font=ctk.CTkFont(size=12, weight="bold"))
+        lbl_bb_timer_title = ctk.CTkLabel(bb_timer_card, text=safe_text("⏱️ BB Combat Exit Timer:"), font=ctk.CTkFont(size=12, weight="bold"))
         lbl_bb_timer_title.grid(row=0, column=0, padx=(10, 4), pady=(6, 2), sticky="w")
 
         self.bb_ent_timer_var = ctk.StringVar(value="60s")
@@ -523,7 +599,7 @@ class DashboardApp(ctk.CTk):
         # BB Audit Log Button
         btn_bb_audit = ctk.CTkButton(
             self.bb_controls_frame,
-            text="📋 Open Builder Base Audit Log",
+            text=safe_text("📋 Open Builder Base Audit Log"),
             height=30,
             fg_color="#334155",
             hover_color="#1e293b",
@@ -537,13 +613,15 @@ class DashboardApp(ctk.CTk):
         # =============================================================
         # Voice & Desktop Toast Switch
         self.voice_var = ctk.BooleanVar(value=True)
-        sw_voice = ctk.CTkSwitch(sidebar, text="Voice & Windows Toast Alerts", variable=self.voice_var, command=self._on_voice_toggle)
+        sw_voice_text = "Voice & Desktop Toast Alerts" if sys.platform == "darwin" else "Voice & Windows Toast Alerts"
+        sw_voice = ctk.CTkSwitch(sidebar, text=sw_voice_text, variable=self.voice_var, command=self._on_voice_toggle)
         sw_voice.grid(row=5, column=0, padx=16, pady=6, sticky="w")
 
         # Primary Action Buttons
+        start_txt = safe_text("▶ START FARMING (⌘R)" if sys.platform == "darwin" else "▶ START FARMING (F8)")
         self.btn_start = ctk.CTkButton(
             sidebar,
-            text="▶ START FARMING (F8)",
+            text=start_txt,
             height=42,
             fg_color="#16a34a",
             hover_color="#15803d",
@@ -552,9 +630,10 @@ class DashboardApp(ctk.CTk):
         )
         self.btn_start.grid(row=6, column=0, padx=16, pady=(12, 6), sticky="ew")
 
+        pause_txt = safe_text("⏸ PAUSE (⌘P)" if sys.platform == "darwin" else "⏸ PAUSE (F9)")
         self.btn_pause = ctk.CTkButton(
             sidebar,
-            text="⏸ PAUSE (F9)",
+            text=pause_txt,
             height=34,
             fg_color="#3f3f46",
             text_color="#9ca3af",
@@ -564,9 +643,10 @@ class DashboardApp(ctk.CTk):
         )
         self.btn_pause.grid(row=7, column=0, padx=16, pady=3, sticky="ew")
 
+        stop_txt = safe_text("🛑 SAFE STOP (Esc)" if sys.platform == "darwin" else "🛑 EMERGENCY STOP (F10)")
         self.btn_stop = ctk.CTkButton(
             sidebar,
-            text="🛑 EMERGENCY STOP (F10)",
+            text=stop_txt,
             height=34,
             fg_color="#dc2626",
             hover_color="#b91c1c",
@@ -577,7 +657,7 @@ class DashboardApp(ctk.CTk):
 
         btn_audit = ctk.CTkButton(
             sidebar,
-            text="📋 Open Decision Audit Log",
+            text=safe_text("📋 Open Decision Audit Log"),
             height=28,
             fg_color="#27272a",
             hover_color="#3f3f46",
@@ -595,50 +675,102 @@ class DashboardApp(ctk.CTk):
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_rowconfigure(3, weight=1)
 
-        # Header with State, Shortcuts & Mode badges
+        # Header with State, Shortcuts & Quick Action Buttons
         header_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, padx=16, pady=(14, 10), sticky="ew")
+        header_frame.grid(row=0, column=0, padx=16, pady=(12, 8), sticky="ew")
 
-        lbl_state_title = ctk.CTkLabel(header_frame, text="Active State:", font=ctk.CTkFont(size=14))
-        lbl_state_title.pack(side="left", padx=(0, 8))
+        # Left side: Active State Pill
+        lbl_state_title = ctk.CTkLabel(header_frame, text="Active State:", font=ctk.CTkFont(size=13, weight="bold"))
+        lbl_state_title.pack(side="left", padx=(0, 6))
 
         self.state_pill = ctk.CTkLabel(
             header_frame,
             text="IDLE / READY",
             fg_color="#27272a",
             corner_radius=8,
-            padx=12,
+            padx=10,
             pady=4,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#22c55e"
         )
-        self.state_pill.pack(side="left")
+        self.state_pill.pack(side="left", padx=(0, 8))
 
-        # Quick Help & Shortcuts (Moved directly beside Active State)
-        lbl_shortcuts = ctk.CTkLabel(
+        # Header Quick Action Buttons (One-Click Convenience for Mac & Windows)
+        self.btn_hdr_start = ctk.CTkButton(
             header_frame,
-            text="⌨ [F7] Bind  •  [F8] Start/Stop  •  [F9] Pause  •  [F10] Safe Stop",
+            text="▶ Start (⌘R)" if sys.platform == "darwin" else "▶ Start (F8)",
+            width=92,
+            height=28,
+            fg_color="#16a34a",
+            hover_color="#15803d",
             font=ctk.CTkFont(size=11, weight="bold"),
-            fg_color="#27272a",
-            text_color="#9ca3af",
-            corner_radius=8,
-            padx=12,
-            pady=4
+            command=self._toggle_farming_session
         )
-        lbl_shortcuts.pack(side="left", padx=(12, 0))
+        self.btn_hdr_start.pack(side="left", padx=2)
 
-        exec_pill_label = "⚡ LIVE WIN32 MOUSE EXECUTION" if sys.platform == "win32" else "⚡ LIVE MOUSE EXECUTION"
+        self.btn_hdr_pause = ctk.CTkButton(
+            header_frame,
+            text="⏸ Pause (⌘P)" if sys.platform == "darwin" else "⏸ Pause (F9)",
+            width=92,
+            height=28,
+            fg_color="#3f3f46",
+            text_color="#9ca3af",
+            state="disabled",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._handle_pause_action
+        )
+        self.btn_hdr_pause.pack(side="left", padx=2)
+
+        self.btn_hdr_stop = ctk.CTkButton(
+            header_frame,
+            text="🛑 Stop (Esc)" if sys.platform == "darwin" else "🛑 Stop (F10)",
+            width=90,
+            height=28,
+            fg_color="#dc2626",
+            hover_color="#b91c1c",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._handle_stop_action
+        )
+        self.btn_hdr_stop.pack(side="left", padx=2)
+
+        self.btn_hdr_bind = ctk.CTkButton(
+            header_frame,
+            text="◎ Bind (⌘B)" if sys.platform == "darwin" else "◎ Bind (F7)",
+            width=86,
+            height=28,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._bind_game_window_interactive
+        )
+        self.btn_hdr_bind.pack(side="left", padx=2)
+
+        # Right side: Execution Mode Pill & Shortcut Badge
+        exec_pill_label = "⚡ LIVE WIN32" if sys.platform == "win32" else "⚡ LIVE MOUSE"
         self.mode_pill = ctk.CTkLabel(
             header_frame,
             text=exec_pill_label,
             fg_color="#dc2626",
             corner_radius=8,
-            padx=12,
+            padx=10,
             pady=4,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(size=11, weight="bold"),
             text_color="#ffffff"
         )
         self.mode_pill.pack(side="right")
+
+        shortcut_text = "⌨ ⌘R Start • ⌘P Pause • ⌘B Bind • Esc Stop" if sys.platform == "darwin" else "⌨ [F7] Bind • [F8] Start • [F9] Pause • [F10] Stop"
+        lbl_shortcuts = ctk.CTkLabel(
+            header_frame,
+            text=shortcut_text,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color="#27272a",
+            text_color="#9ca3af",
+            corner_radius=8,
+            padx=8,
+            pady=4
+        )
+        lbl_shortcuts.pack(side="right", padx=(0, 6))
 
         # Telemetry Cards (Stats Grid - Attacks & Skips)
         telemetry_frame = ctk.CTkFrame(main_frame, fg_color="#222226", corner_radius=10)
@@ -659,7 +791,7 @@ class DashboardApp(ctk.CTk):
         # Header for Loot Section
         lbl_loot_hdr = ctk.CTkLabel(
             loot_section_frame,
-            text="💰 Loot Collected (Screenshot Verified)",
+            text=safe_text("💰 Loot Collected (Screenshot Verified)"),
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#e4e4e7"
         )
@@ -669,7 +801,7 @@ class DashboardApp(ctk.CTk):
         gold_card = ctk.CTkFrame(loot_section_frame, fg_color="#18181b", corner_radius=8)
         gold_card.grid(row=1, column=0, padx=8, pady=(2, 8), sticky="ew")
         gold_card.grid_columnconfigure(0, weight=1)
-        lbl_g_t = ctk.CTkLabel(gold_card, text="🟡 Gold", font=ctk.CTkFont(size=11, weight="bold"), text_color="#fbbf24")
+        lbl_g_t = ctk.CTkLabel(gold_card, text=safe_text("🟡 Gold"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#fbbf24")
         lbl_g_t.pack(pady=(4, 0))
         self.lbl_loot_gold_total = ctk.CTkLabel(gold_card, text="0", font=ctk.CTkFont(size=15, weight="bold"), text_color="#fef08a")
         self.lbl_loot_gold_total.pack(pady=(0, 0))
@@ -680,7 +812,7 @@ class DashboardApp(ctk.CTk):
         elixir_card = ctk.CTkFrame(loot_section_frame, fg_color="#18181b", corner_radius=8)
         elixir_card.grid(row=1, column=1, padx=8, pady=(2, 8), sticky="ew")
         elixir_card.grid_columnconfigure(0, weight=1)
-        lbl_e_t = ctk.CTkLabel(elixir_card, text="🟣 Elixir", font=ctk.CTkFont(size=11, weight="bold"), text_color="#d946ef")
+        lbl_e_t = ctk.CTkLabel(elixir_card, text=safe_text("🟣 Elixir"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#d946ef")
         lbl_e_t.pack(pady=(4, 0))
         self.lbl_loot_elixir_total = ctk.CTkLabel(elixir_card, text="0", font=ctk.CTkFont(size=15, weight="bold"), text_color="#f5d0fe")
         self.lbl_loot_elixir_total.pack(pady=(0, 0))
@@ -691,7 +823,7 @@ class DashboardApp(ctk.CTk):
         de_card = ctk.CTkFrame(loot_section_frame, fg_color="#18181b", corner_radius=8)
         de_card.grid(row=1, column=2, padx=8, pady=(2, 8), sticky="ew")
         de_card.grid_columnconfigure(0, weight=1)
-        lbl_de_t = ctk.CTkLabel(de_card, text="⚫ Dark Elixir", font=ctk.CTkFont(size=11, weight="bold"), text_color="#38bdf8")
+        lbl_de_t = ctk.CTkLabel(de_card, text=safe_text("⚫ Dark Elixir"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#38bdf8")
         lbl_de_t.pack(pady=(4, 0))
         self.lbl_loot_de_total = ctk.CTkLabel(de_card, text="0", font=ctk.CTkFont(size=15, weight="bold"), text_color="#e2e8f0")
         self.lbl_loot_de_total.pack(pady=(0, 0))
@@ -704,10 +836,11 @@ class DashboardApp(ctk.CTk):
         feed_frame.grid_columnconfigure(0, weight=1)
         feed_frame.grid_rowconfigure(1, weight=1)
 
-        lbl_feed_title = ctk.CTkLabel(feed_frame, text="📜 Activity & Decision Feed", font=ctk.CTkFont(size=13, weight="bold"))
+        lbl_feed_title = ctk.CTkLabel(feed_frame, text=safe_text("📜 Activity & Decision Feed"), font=ctk.CTkFont(size=13, weight="bold"))
         lbl_feed_title.grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
 
-        self.txt_logs = ctk.CTkTextbox(feed_frame, font=ctk.CTkFont(family="Consolas", size=12), fg_color="#18181b")
+        mono_family = "Menlo" if sys.platform == "darwin" else "Consolas"
+        self.txt_logs = ctk.CTkTextbox(feed_frame, font=ctk.CTkFont(family=mono_family, size=12), fg_color="#18181b")
         self.txt_logs.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
 
         self.log_event("Application initialized. Ready to farm.")
@@ -988,34 +1121,70 @@ class DashboardApp(ctk.CTk):
             self.lbl_stat_attacks.configure(text=str(sm.attacks_completed))
             self.lbl_stat_skips.configure(text="N/A (Direct)")
 
+            is_mac = sys.platform == "darwin"
+            start_key = "⌘R" if is_mac else "F8"
+            pause_key = "⌘P" if is_mac else "F9"
+
             if self.bb_controller.is_running:
                 self.btn_start.configure(
-                    text="⏹ STOP BB BOT (F8)",
+                    text=f"⏹ STOP BB BOT ({start_key})",
                     fg_color="#dc2626",
                     hover_color="#b91c1c"
                 )
+                if hasattr(self, "btn_hdr_start"):
+                    self.btn_hdr_start.configure(
+                        text=f"⏹ Stop ({start_key})",
+                        fg_color="#dc2626",
+                        hover_color="#b91c1c"
+                    )
+                bb_paused = self.bb_controller.is_paused
                 self.btn_pause.configure(
                     state="normal",
-                    text="▶ RESUME (F9)" if self.bb_controller.is_paused else "⏸ PAUSE (F9)",
-                    fg_color="#10b981" if self.bb_controller.is_paused else "#eab308",
-                    text_color="#ffffff" if self.bb_controller.is_paused else "#000000",
-                    hover_color="#059669" if self.bb_controller.is_paused else "#ca8a04"
+                    text=f"▶ RESUME ({pause_key})" if bb_paused else f"⏸ PAUSE ({pause_key})",
+                    fg_color="#10b981" if bb_paused else "#eab308",
+                    text_color="#ffffff" if bb_paused else "#000000",
+                    hover_color="#059669" if bb_paused else "#ca8a04"
                 )
+                if hasattr(self, "btn_hdr_pause"):
+                    self.btn_hdr_pause.configure(
+                        state="normal",
+                        text="▶ Resume" if bb_paused else "⏸ Pause",
+                        fg_color="#10b981" if bb_paused else "#eab308",
+                        text_color="#ffffff" if bb_paused else "#000000",
+                        hover_color="#059669" if bb_paused else "#ca8a04"
+                    )
             else:
                 self.btn_start.configure(
-                    text="▶ START BB BOT (F8)",
+                    text=f"▶ START BB BOT ({start_key})",
                     fg_color="#16a34a",
                     hover_color="#15803d"
                 )
+                if hasattr(self, "btn_hdr_start"):
+                    self.btn_hdr_start.configure(
+                        text=f"▶ Start ({start_key})",
+                        fg_color="#16a34a",
+                        hover_color="#15803d"
+                    )
                 self.btn_pause.configure(
                     state="disabled",
-                    text="⏸ PAUSE (F9)",
+                    text=f"⏸ PAUSE ({pause_key})",
                     fg_color="#3f3f46",
                     text_color="#9ca3af"
                 )
+                if hasattr(self, "btn_hdr_pause"):
+                    self.btn_hdr_pause.configure(
+                        state="disabled",
+                        text="⏸ Pause",
+                        fg_color="#3f3f46",
+                        text_color="#9ca3af"
+                    )
 
         # 2. Home Village Active Telemetry
         else:
+            is_mac = sys.platform == "darwin"
+            start_key = "⌘R" if is_mac else "F8"
+            pause_key = "⌘P" if is_mac else "F9"
+
             if hasattr(self.controller, "state_machine") and self.controller.state_machine:
                 sm = self.controller.state_machine
                 self.lbl_stat_attacks.configure(text=str(sm.attacks_completed))
@@ -1032,29 +1201,57 @@ class DashboardApp(ctk.CTk):
             # Dynamic Start / Stop Button Updates for Home Village
             if self.controller.is_running:
                 self.btn_start.configure(
-                    text="⏹ STOP FARMING (F8)",
+                    text=f"⏹ STOP FARMING ({start_key})",
                     fg_color="#dc2626",
                     hover_color="#b91c1c"
                 )
+                if hasattr(self, "btn_hdr_start"):
+                    self.btn_hdr_start.configure(
+                        text=f"⏹ Stop ({start_key})",
+                        fg_color="#dc2626",
+                        hover_color="#b91c1c"
+                    )
+                is_p = self.controller.is_paused
                 self.btn_pause.configure(
                     state="normal",
-                    text="▶ RESUME (F9)" if self.controller.is_paused else "⏸ PAUSE (F9)",
-                    fg_color="#10b981" if self.controller.is_paused else "#eab308",
-                    text_color="#ffffff" if self.controller.is_paused else "#000000",
-                    hover_color="#059669" if self.controller.is_paused else "#ca8a04"
+                    text=f"▶ RESUME ({pause_key})" if is_p else f"⏸ PAUSE ({pause_key})",
+                    fg_color="#10b981" if is_p else "#eab308",
+                    text_color="#ffffff" if is_p else "#000000",
+                    hover_color="#059669" if is_p else "#ca8a04"
                 )
+                if hasattr(self, "btn_hdr_pause"):
+                    self.btn_hdr_pause.configure(
+                        state="normal",
+                        text="▶ Resume" if is_p else "⏸ Pause",
+                        fg_color="#10b981" if is_p else "#eab308",
+                        text_color="#ffffff" if is_p else "#000000",
+                        hover_color="#059669" if is_p else "#ca8a04"
+                    )
             else:
                 self.btn_start.configure(
-                    text="▶ START FARMING (F8)",
+                    text=f"▶ START FARMING ({start_key})",
                     fg_color="#16a34a",
                     hover_color="#15803d"
                 )
+                if hasattr(self, "btn_hdr_start"):
+                    self.btn_hdr_start.configure(
+                        text=f"▶ Start ({start_key})",
+                        fg_color="#16a34a",
+                        hover_color="#15803d"
+                    )
                 self.btn_pause.configure(
                     state="disabled",
-                    text="⏸ PAUSE (F9)",
+                    text=f"⏸ PAUSE ({pause_key})",
                     fg_color="#3f3f46",
                     text_color="#9ca3af"
                 )
+                if hasattr(self, "btn_hdr_pause"):
+                    self.btn_hdr_pause.configure(
+                        state="disabled",
+                        text="⏸ Pause",
+                        fg_color="#3f3f46",
+                        text_color="#9ca3af"
+                    )
 
         # 3. Loot Collected Telemetry (Screenshot-Verified)
         if self.current_village == "builder_base":

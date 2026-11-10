@@ -90,10 +90,57 @@ class SessionController:
         """Cross-platform global hotkey listener for macOS and Linux via pynput."""
         try:
             from pynput import keyboard
+            modifiers = {"cmd": False, "ctrl": False}
+
             def on_press(key):
                 if not self._hotkey_listener_active:
                     return False
                 try:
+                    # Track Command / Control modifiers
+                    if key in (keyboard.Key.cmd, keyboard.Key.cmd_l, keyboard.Key.cmd_r):
+                        modifiers["cmd"] = True
+                        return
+                    if key in (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r):
+                        modifiers["ctrl"] = True
+                        return
+
+                    # 1. Universal Escape Key -> Emergency Safe Stop
+                    if key == keyboard.Key.esc:
+                        logger.info("[HOTKEY] Esc pressed -> Emergency Safe Stop")
+                        if self.hotkey_stop_callback:
+                            self.hotkey_stop_callback()
+                        else:
+                            threading.Thread(target=self.stop_session, daemon=True).start()
+                        return
+
+                    # 2. Native macOS Command & Control Shortcuts (⌘R / Ctrl+R, ⌘P / Ctrl+P, ⌘B / Ctrl+B)
+                    if modifiers["cmd"] or modifiers["ctrl"]:
+                        char = getattr(key, "char", None)
+                        if char:
+                            c = char.lower()
+                            if c == "r":
+                                logger.info("[HOTKEY] ⌘R/Ctrl+R pressed -> Toggle Start/Stop")
+                                if self.hotkey_start_callback:
+                                    self.hotkey_start_callback()
+                                else:
+                                    threading.Thread(target=self.toggle_start_stop, daemon=True).start()
+                                return
+                            elif c == "p":
+                                logger.info("[HOTKEY] ⌘P/Ctrl+P pressed -> Toggle Pause/Resume")
+                                if self.hotkey_pause_callback:
+                                    self.hotkey_pause_callback()
+                                else:
+                                    threading.Thread(target=self.toggle_pause, daemon=True).start()
+                                return
+                            elif c == "b":
+                                logger.info("[HOTKEY] ⌘B/Ctrl+B pressed -> Bind Window")
+                                if self.window_bind_callback:
+                                    self.window_bind_callback()
+                                else:
+                                    threading.Thread(target=self.trigger_window_bind, daemon=True).start()
+                                return
+
+                    # 3. Standard Universal F-Keys (F7 Bind, F8 Start/Stop, F9 Pause, F10 Stop)
                     if key == keyboard.Key.f7:
                         logger.info("[HOTKEY] F7 pressed -> Bind Window")
                         if self.window_bind_callback:
@@ -121,8 +168,14 @@ class SessionController:
                 except Exception:
                     pass
 
-            with keyboard.Listener(on_press=on_press) as listener:
-                logger.info("Registered cross-platform hotkeys via pynput: [F7] Bind, [F8] Start/Stop, [F9] Pause/Resume, [F10] Emergency Stop")
+            def on_release(key):
+                if key in (keyboard.Key.cmd, keyboard.Key.cmd_l, keyboard.Key.cmd_r):
+                    modifiers["cmd"] = False
+                elif key in (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r):
+                    modifiers["ctrl"] = False
+
+            with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+                logger.info("Registered cross-platform hotkeys via pynput: [⌘R/F8] Start/Stop, [⌘P/F9] Pause, [⌘B/F7] Bind, [Esc/F10] Safe Stop")
                 while self._hotkey_listener_active:
                     time.sleep(0.5)
                 listener.stop()
