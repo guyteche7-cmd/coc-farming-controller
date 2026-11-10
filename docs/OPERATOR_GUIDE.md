@@ -32,15 +32,17 @@ An advanced, computer-vision and AI-powered autonomous farming bot for **Clash o
 
 ## 🚀 Quick Installation & Setup
 
-### Option 1: 1-Click Installer (Recommended)
-1. Extract this zip archive to any folder on your PC (e.g. `C:\CoC-Bot` or Desktop).
-2. Double-click **`install.bat`** (or `setup.bat`).
-3. The installer will check your Python environment and install all dependencies from `requirements.txt`.
+### 1-Click Launch (Recommended)
+1. Extract this zip / clone this repository to any folder on your PC.
+2. Double-click **
+un_bot.bat**.
+3. It will automatically detect Python, install any missing dependencies on first launch, and open the dashboard!
 
-### Option 2: Manual pip Installation
-Open PowerShell / Command Prompt in this folder and run:
-```powershell
+### Manual Installation (Alternative)
+If you prefer installing dependencies manually via terminal:
+`powershell
 pip install -r requirements.txt
+python -m src.app.main
 ```
 
 ---

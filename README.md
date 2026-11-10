@@ -110,38 +110,13 @@ flowchart TD
 
 ## 🚀 Quick Start Guide
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/<your-username>/coc-farming-controller.git
-cd coc-farming-controller
-```
-
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 3. (Optional) Configure Gemini VLM Fallback
-If you wish to enable the optional Tier-4 Google Gemini multimodal fallback for unprecedented popups:
-1. Copy `.env.example` to `.env`:
-   ```bash
-   copy .env.example .env
-   ```
-2. Open `.env` and insert your Gemini API key:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-*(If no API key is provided, the controller runs in 100% offline mode using Tier 1-3 perception without external network dependencies).*
-
-### 4. Launch the Bot
+### 1-Click Launch (Zero Setup)
 Simply double-click:
-```bash
+`ash
 run_bot.bat
-```
-Or run from command line:
-```bash
-python -m src.app.main
-```
+`
+
+un_bot.bat will automatically verify your Python environment, install any missing dependencies on first launch, and launch the GUI dashboard immediately!
 
 ---
 
