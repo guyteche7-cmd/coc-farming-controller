@@ -106,7 +106,7 @@ flowchart TD
 3. **Android Emulator**:
    - **macOS**: **BlueStacks App Player** (Resolution: 1920 $\times$ 1080 Landscape).
    - **Windows**: **LDPlayer 9**, **Google Play Games PC**, or **BlueStacks 5** (1920 $\times$ 1080 Landscape, DPI 280-320).
-   - Ensure Clash of Clans is installed and updated to the latest version.
+   - Ensure Clash of Clans is installed.
 
 ---
 
