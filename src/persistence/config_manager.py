@@ -133,6 +133,16 @@ class LoggingConfig(BaseModel):
     database_file: str = "data/farming_history.db"
 
 
+class DatasetConfig(BaseModel):
+    enabled: bool = True
+    interval_seconds: float = 5.0
+    save_dir: str = "dataset/raw_frames"
+    capture_combat: bool = True
+    capture_home: bool = True
+    capture_scout: bool = True
+    max_saved_frames: int = 50000
+
+
 class AppConfig(BaseModel):
     version: int = 1
     mode: Literal["wall_plus_attack", "fixed_attacks", "infinite"] = "fixed_attacks"
@@ -145,6 +155,7 @@ class AppConfig(BaseModel):
     storage_limit: StorageLimitConfig = Field(default_factory=StorageLimitConfig)
     safety: SafetyConfig = Field(default_factory=SafetyConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    dataset: DatasetConfig = Field(default_factory=DatasetConfig)
 
 
 class ConfigManager:

@@ -90,3 +90,11 @@ logging:
   log_to_file: true
   log_file: data/coc_farming.log
   database_file: data/farming_history.db
+dataset:
+  enabled: true
+  interval_seconds: 5.0
+  save_dir: dataset/raw_frames
+  capture_combat: true
+  capture_home: true
+  capture_scout: true
+  max_saved_frames: 50000

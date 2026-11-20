@@ -185,6 +185,9 @@ class StateMachine:
         else:
             self.unknown_state_streak += 1
 
+        # Periodic background dataset training frame collector
+        self._maybe_collect_dataset_frame(frame, detected_state)
+
         # 3. Dispatch based on detected game state
         if detected_state == UIState.HOME:
             self.in_active_attack = False
@@ -1257,3 +1260,51 @@ class StateMachine:
         self.notifier.announce(msg, chime="victory", toast_title="Attack Completed!")
         self.last_announced_state = outcome_state
         self._click_action_point("RETURN_HOME_BUTTON", delay_after=2.0, reason="Return to Home Village after battle")
+
+    def _maybe_collect_dataset_frame(self, frame_bgr, state: UIState):
+        """Periodically collects raw high-resolution game frames for offline YOLO model training."""
+        if frame_bgr is None or frame_bgr.size == 0:
+            return
+
+        dataset_cfg = getattr(self.config, "dataset", None)
+        if dataset_cfg is None or not getattr(dataset_cfg, "enabled", False):
+            return
+
+        state_name = state.name if hasattr(state, "name") else str(state)
+        # Verify state eligibility
+        if state in (UIState.ACTIVE_BATTLE, UIState.CANDIDATE_BATTLE) and not getattr(dataset_cfg, "capture_combat", True):
+            return
+        if state == UIState.HOME and not getattr(dataset_cfg, "capture_home", True):
+            return
+
+        now = time.time()
+        last_t = getattr(self, "_last_dataset_capture_time", 0.0)
+        interval = float(getattr(dataset_cfg, "interval_seconds", 5.0))
+
+        if now - last_t >= interval:
+            self._last_dataset_capture_time = now
+            import threading
+            threading.Thread(
+                target=self._save_dataset_frame_async,
+                args=(frame_bgr.copy(), state_name, now),
+                daemon=True
+            ).start()
+
+    def _save_dataset_frame_async(self, frame_bgr, state_name: str, timestamp: float):
+        """Worker thread to persist raw frame to disk without blocking the farming state machine."""
+        try:
+            import os
+            import cv2
+            from datetime import datetime
+
+            save_dir = getattr(self.config.dataset, "save_dir", "dataset/raw_frames")
+            os.makedirs(save_dir, exist_ok=True)
+
+            dt_str = datetime.fromtimestamp(timestamp).strftime("%Y%m%d_%H%M%S_%f")[:19]
+            filename = f"frame_{dt_str}_{state_name}.jpg"
+            filepath = os.path.join(save_dir, filename)
+
+            cv2.imwrite(filepath, frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+            logger.info(f"[DATASET] Captured training frame ({state_name}) -> {filename}")
+        except Exception as e:
+            logger.debug(f"[DATASET] Failed to write dataset frame: {e}")

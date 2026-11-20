@@ -36,6 +36,8 @@ temp/*
 temp_*.png
 scratch/
 data/diagnostics/
+dataset/raw_frames/*
+!dataset/raw_frames/.gitkeep
 
 # IDE, OS & Editor Artifacts
 .vscode/
