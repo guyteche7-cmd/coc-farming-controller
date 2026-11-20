@@ -70,12 +70,13 @@ class ArmyLedger(BaseModel):
         Slot 6: Spells (Earthquake Spell)
         """
         self.slots.clear()
+        current_slot = 0
 
-        # Slot 0: Troops
+        # Troops
         for troop in deployment_config.army.troops:
             self.slots.append(
                 ArmySlot(
-                    slot_index=0,
+                    slot_index=current_slot,
                     name=troop.name,
                     category=UnitCategory.TROOP,
                     expected_quantity=troop.expected_quantity,
@@ -83,12 +84,13 @@ class ArmyLedger(BaseModel):
                     status=UnitStatus.EXPECTED
                 )
             )
+            current_slot += 1
 
-        # Slot 1: Siege Engine
+        # Siege Engine
         for siege in deployment_config.army.siege:
             self.slots.append(
                 ArmySlot(
-                    slot_index=1,
+                    slot_index=current_slot,
                     name=siege.name,
                     category=UnitCategory.SIEGE,
                     expected_quantity=siege.expected_quantity,
@@ -96,14 +98,15 @@ class ArmyLedger(BaseModel):
                     status=UnitStatus.EXPECTED
                 )
             )
+            current_slot += 1
 
-        # Slots 2-5: Heroes
-        hero_names = ["minion_prince", "archer_queen", "grand_warden", "barbarian_king"]
-        for idx, hname in enumerate(hero_names):
-            slot_id = 2 + idx
+        # Heroes
+        cfg_heroes = getattr(deployment_config.army, "heroes", [])
+        for hero in cfg_heroes:
+            hname = hero.name if hasattr(hero, "name") else (hero.get("name", "") if isinstance(hero, dict) else "")
             self.slots.append(
                 ArmySlot(
-                    slot_index=slot_id,
+                    slot_index=current_slot,
                     name=hname,
                     category=UnitCategory.HERO,
                     expected_quantity=1,
@@ -111,12 +114,13 @@ class ArmyLedger(BaseModel):
                     status=UnitStatus.EXPECTED
                 )
             )
+            current_slot += 1
 
-        # Slot 6: Spells
+        # Spells
         for spell in deployment_config.army.spells:
             self.slots.append(
                 ArmySlot(
-                    slot_index=6,
+                    slot_index=current_slot,
                     name=spell.name,
                     category=UnitCategory.SPELL,
                     expected_quantity=spell.expected_quantity,
@@ -124,6 +128,7 @@ class ArmyLedger(BaseModel):
                     status=UnitStatus.EXPECTED
                 )
             )
+            current_slot += 1
 
     def get_slot_by_index(self, slot_index: int) -> Optional[ArmySlot]:
         for slot in self.slots:

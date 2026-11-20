@@ -61,9 +61,17 @@ class DeploymentAction(BaseModel):
 class DeploymentPlanner:
     """Universal direct single-point deployment planner with adaptive directional probing."""
 
-    # Precise slot center coordinates from real LDPlayer screenshots (Supports up to 9 slots)
-    SLOT_X_COORDINATES = [0.106, 0.185, 0.265, 0.345, 0.425, 0.505, 0.585, 0.665, 0.745]
+    # Precise slot center coordinates from real LDPlayer screenshots (Supports up to 14 slots)
+    SLOT_X_COORDINATES = [
+        0.106, 0.185, 0.265, 0.345, 0.425, 0.505, 0.585, 0.665, 0.745, 0.825, 0.905, 0.965, 0.980, 0.990
+    ]
     RIBBON_Y = 0.900
+
+    def get_slot_x(self, slot_idx: int) -> float:
+        """Returns the normalized X coordinate for any slot index on the bottom ribbon."""
+        if 0 <= slot_idx < len(self.SLOT_X_COORDINATES):
+            return self.SLOT_X_COORDINATES[slot_idx]
+        return min(0.965, 0.106 + slot_idx * 0.080)
 
     # Primary target deploy point from user screenshot (Right of 'Battle ends in:' on top grass)
     TARGET_DEPLOY_X = 0.6055
@@ -431,7 +439,7 @@ class DeploymentPlanner:
         Deselects the currently active ribbon slot (e.g. Hero) by tapping a depleted slot or ribbon margin,
         preventing inadvertent hero deployment clicks during post-deployment battle observation.
         """
-        norm_x = self.SLOT_X_COORDINATES[min(empty_slot_idx, len(self.SLOT_X_COORDINATES) - 1)]
+        norm_x = self.get_slot_x(empty_slot_idx)
         return DeploymentAction(
             action_type=ActionType.CLICK_UI,
             target_name=f"Deselect Active Ribbon Slot (via Slot {empty_slot_idx})",
@@ -449,7 +457,7 @@ class DeploymentPlanner:
 
     def generate_slot_select_action(self, slot_idx: int) -> DeploymentAction:
         """Generates action to select a specific unit slot on the bottom army ribbon."""
-        norm_x = self.SLOT_X_COORDINATES[min(slot_idx, len(self.SLOT_X_COORDINATES) - 1)]
+        norm_x = self.get_slot_x(slot_idx)
         return DeploymentAction(
             action_type=ActionType.SELECT_SLOT,
             target_name=f"Army Slot {slot_idx}",
@@ -511,7 +519,7 @@ class DeploymentPlanner:
                 action_type=ActionType.SELECT_SLOT,
                 target_name=f"Troops (Slot {t_slot})",
                 slot_index=t_slot,
-                norm_x=self.SLOT_X_COORDINATES[min(t_slot, len(self.SLOT_X_COORDINATES)-1)],
+                norm_x=self.get_slot_x(t_slot),
                 norm_y=self.RIBBON_Y,
                 delay_after_sec=0.10,
                 description=f"Select regular troops (Slot {t_slot})"
@@ -530,12 +538,12 @@ class DeploymentPlanner:
         # -------------------------------------------------------------
         # 2. SIEGE MACHINE (1 CLICK TO SELECT, 1 CLICK TO DEPLOY)
         # -------------------------------------------------------------
-        if siege_slot is not None and siege_slot < len(self.SLOT_X_COORDINATES):
+        if siege_slot is not None:
             plan.append(DeploymentAction(
                 action_type=ActionType.SELECT_SLOT,
                 target_name=f"Siege Machine (Slot {siege_slot})",
                 slot_index=siege_slot,
-                norm_x=self.SLOT_X_COORDINATES[siege_slot],
+                norm_x=self.get_slot_x(siege_slot),
                 norm_y=self.RIBBON_Y,
                 delay_after_sec=0.10,
                 description=f"Select Siege Machine (Slot {siege_slot})"
@@ -555,14 +563,12 @@ class DeploymentPlanner:
         # 3. HEROES (1 CLICK TO SELECT, 1 CLICK TO DEPLOY PER HERO)
         # -------------------------------------------------------------
         for idx, h_slot in enumerate(hero_slots):
-            if h_slot >= len(self.SLOT_X_COORDINATES):
-                continue
             h_name = f"Hero {idx+1} (Slot {h_slot})"
             plan.append(DeploymentAction(
                 action_type=ActionType.SELECT_SLOT,
                 target_name=h_name,
                 slot_index=h_slot,
-                norm_x=self.SLOT_X_COORDINATES[h_slot],
+                norm_x=self.get_slot_x(h_slot),
                 norm_y=self.RIBBON_Y,
                 delay_after_sec=0.10,
                 description=f"Select {h_name} on ribbon"
@@ -582,13 +588,11 @@ class DeploymentPlanner:
         # 4. SPELLS
         # -------------------------------------------------------------
         for sp_slot in spell_slots:
-            if sp_slot >= len(self.SLOT_X_COORDINATES):
-                continue
             plan.append(DeploymentAction(
                 action_type=ActionType.SELECT_SLOT,
                 target_name=f"Spells (Slot {sp_slot})",
                 slot_index=sp_slot,
-                norm_x=self.SLOT_X_COORDINATES[sp_slot],
+                norm_x=self.get_slot_x(sp_slot),
                 norm_y=self.RIBBON_Y,
                 delay_after_sec=0.10,
                 description=f"Select Spells (Slot {sp_slot})"
@@ -618,21 +622,17 @@ class DeploymentPlanner:
         # 6. ACTIVATE HERO ABILITIES (1 CLICK PER ACTUAL HERO ON RIBBON)
         # -------------------------------------------------------------
         for idx, h_slot in enumerate(hero_slots):
-            if h_slot >= len(self.SLOT_X_COORDINATES):
-                continue
             h_name = f"Hero {idx+1} (Slot {h_slot})"
             plan.append(DeploymentAction(
                 action_type=ActionType.ACTIVATE_ABILITY,
                 target_name=f"Ability: {h_name}",
                 slot_index=h_slot,
-                norm_x=self.SLOT_X_COORDINATES[h_slot],
+                norm_x=self.get_slot_x(h_slot),
                 norm_y=self.RIBBON_Y,
                 tap_count=1,
                 delay_after_sec=0.15,
                 description=f"Click Hero Slot {h_slot} (1 tap) to trigger ability for {h_name}"
             ))
-
-        return plan
 
         return plan
 

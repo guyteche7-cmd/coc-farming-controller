@@ -79,10 +79,12 @@ class ArmyConfig(BaseModel):
         SiegeUnitConfig(name="siege_barracks", expected_quantity=1, enabled=True)
     ])
     heroes: List[HeroUnitConfig] = Field(default_factory=lambda: [
-        HeroUnitConfig(name="minion_prince", enabled=True),
+        HeroUnitConfig(name="barbarian_king", enabled=True),
         HeroUnitConfig(name="archer_queen", enabled=True),
         HeroUnitConfig(name="grand_warden", enabled=True),
-        HeroUnitConfig(name="barbarian_king", enabled=True),
+        HeroUnitConfig(name="royal_champion", enabled=True),
+        HeroUnitConfig(name="minion_prince", enabled=True),
+        HeroUnitConfig(name="dragon_duke", enabled=True),
     ])
     clan_castle: bool = False
 

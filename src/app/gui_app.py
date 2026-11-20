@@ -71,26 +71,67 @@ def safe_text(text: str) -> str:
 
 
 UNIT_ASSET_MAP = {
-    # Troops
-    "Valkyrie": "assets/army/cards/troops/super_valkyrie_card.png",
-    "Super Valkyrie": "assets/army/cards/troops/super_valkyrie_card.png",
-    "Super Wall Breaker": "assets/army/cards/troops/wall_breaker_card.png",
+    # 1. Regular Elixir Troops
+    "Barbarian": "assets/army/cards/troops/barbarian_card.png",
+    "Archer": "assets/army/cards/troops/archer_card.png",
+    "Giant": "assets/army/cards/troops/giant_card.png",
+    "Goblin": "assets/army/cards/troops/goblin_card.png",
     "Wall Breaker": "assets/army/cards/troops/wall_breaker_card.png",
-    "Sneaky Goblin": "assets/army/cards/troops/sneaky_goblin_card.png",
-    "Healer": "assets/army/cards/troops/healer_card.png",
-    "Electro Dragon": "assets/army/cards/troops/electro_dragon_card.png",
-    "Dragon": "assets/army/cards/troops/dragon_card.png",
     "Balloon": "assets/army/cards/troops/balloon_card.png",
+    "Wizard": "assets/army/cards/troops/wizard_card.png",
+    "Healer": "assets/army/cards/troops/healer_card.png",
+    "Dragon": "assets/army/cards/troops/dragon_card.png",
+    "P.E.K.K.A": "assets/army/cards/troops/pekka_card.png",
+    "Baby Dragon": "assets/army/cards/troops/baby_dragon_card.png",
+    "Miner": "assets/army/cards/troops/miner_card.png",
+    "Electro Dragon": "assets/army/cards/troops/electro_dragon_card.png",
+    "Yeti": "assets/army/cards/troops/yeti_card.png",
+    "Dragon Rider": "assets/army/cards/troops/dragon_rider_card.png",
+    "Electro Titan": "assets/army/cards/troops/electro_titan_card.png",
     "Root Rider": "assets/army/cards/troops/root_rider_card.png",
+    "Thrower": "assets/army/cards/troops/thrower_card.png",
+
+    # 2. Dark Elixir Troops
+    "Minion": "assets/army/cards/troops/minion_card.png",
+    "Hog Rider": "assets/army/cards/troops/hog_rider_card.png",
+    "Valkyrie": "assets/army/cards/troops/valkyrie_card.png",
+    "Golem": "assets/army/cards/troops/golem_card.png",
+    "Witch": "assets/army/cards/troops/witch_card.png",
+    "Lava Hound": "assets/army/cards/troops/lava_hound_card.png",
+    "Bowler": "assets/army/cards/troops/bowler_card.png",
+    "Ice Golem": "assets/army/cards/troops/ice_golem_card.png",
+    "Headhunter": "assets/army/cards/troops/headhunter_card.png",
+    "Apprentice Warden": "assets/army/cards/troops/apprentice_warden_card.png",
+    "Druid": "assets/army/cards/troops/druid_card.png",
+    "Furnace": "assets/army/cards/troops/furnace_card.png",
+    "Momma": "assets/army/cards/troops/momma_card.png",
+    "Ruin Witch": "assets/army/cards/troops/ruin_witch_card.png",
+    "Meteor Golem": "assets/army/cards/troops/meteor_golem_card.png",
+
+    # 3. Super Troops
+    "Super Barbarian": "assets/army/cards/troops/super_barbarian_card.png",
+    "Super Archer": "assets/army/cards/troops/super_archer_card.png",
+    "Super Giant": "assets/army/cards/troops/super_giant_card.png",
+    "Sneaky Goblin": "assets/army/cards/troops/sneaky_goblin_card.png",
+    "Super Wall Breaker": "assets/army/cards/troops/wall_breaker_card.png",
+    "Rocket Balloon": "assets/army/cards/troops/rocket_balloon_card.png",
+    "Super Wizard": "assets/army/cards/troops/super_wizard_card.png",
+    "Super Dragon": "assets/army/cards/troops/super_dragon_card.png",
+    "Inferno Dragon": "assets/army/cards/troops/inferno_dragon_card.png",
+    "Super Minion": "assets/army/cards/troops/super_minion_card.png",
+    "Super Valkyrie": "assets/army/cards/troops/super_valkyrie_card.png",
+    "Super Witch": "assets/army/cards/troops/super_witch_card.png",
+    "Ice Hound": "assets/army/cards/troops/ice_hound_card.png",
+    "Super Bowler": "assets/army/cards/troops/bowler_card.png",
+    "Super Miner": "assets/army/cards/troops/super_miner_card.png",
+    "Super Hog Rider": "assets/army/cards/troops/hog_rider_card.png",
+    "Super Yeti": "assets/army/cards/troops/super_yeti_card.png",
+
+    # 4. Squad Barracks
     "Barbarian Squad": "assets/army/cards/troops/super_barbarian_card.png",
     "Archer Squad": "assets/army/cards/troops/super_archer_card.png",
-    "Bowler": "assets/army/cards/troops/bowler_card.png",
-    "Hog Rider": "assets/army/cards/troops/hog_rider_card.png",
-    "Miner": "assets/army/cards/troops/miner_card.png",
-    "Yeti": "assets/army/cards/troops/yeti_card.png",
-    "P.E.K.K.A": "assets/army/cards/troops/pekka_card.png",
 
-    # Siege Machines
+    # 5. Siege Machines
     "Siege Barracks": "assets/siege/siege_barracks.png",
     "Battle Blimp": "assets/siege/battle_blimp.png",
     "Log Launcher": "assets/siege/log_launcher.png",
@@ -100,13 +141,15 @@ UNIT_ASSET_MAP = {
     "Battle Drill": "assets/siege/battle_drill.png",
     "Siege Balloon": "assets/siege/siege_balloon.png",
 
-    # Heroes
-    "Minion Prince": "assets/heroes/minion_prince.png",
+    # 6. Heroes (TH17 Complete 6 Hero Roster)
+    "Barbarian King": "assets/heroes/barbarian_king.png",
     "Archer Queen": "assets/heroes/archer_queen.png",
     "Grand Warden": "assets/heroes/grand_warden.png",
-    "Barbarian King": "assets/heroes/barbarian_king.png",
+    "Royal Champion": "assets/heroes/royal_champion.png",
+    "Minion Prince": "assets/heroes/minion_prince.png",
+    "Dragon Duke": "assets/heroes/dragon_duke.png",
 
-    # Spells
+    # 7. Spells
     "Earthquake": "assets/spells/earthquake.png",
     "Lightning": "assets/spells/lightning.png",
     "Rage": "assets/spells/rage.png",
@@ -116,14 +159,35 @@ UNIT_ASSET_MAP = {
     "Haste": "assets/spells/haste.png",
     "Healing": "assets/spells/healing.png",
     "Skeleton": "assets/spells/skeleton.png",
+    "Invisibility": "assets/army/cards/spells/invisibility_spell_card.png",
+    "Bat Spell": "assets/army/cards/spells/bat_spell_card.png",
+    "Clone Spell": "assets/army/cards/spells/clone_spell_card.png",
+    "Overgrowth": "assets/army/cards/spells/overgrowth_spell_card.png",
+    "Recall Spell": "assets/army/cards/spells/recall_spell_card.png",
+    "Revive Spell": "assets/army/cards/spells/revive_spell_card.png",
     "Heroic Spell": "assets/spells/rage.png",
 }
 
 TROOP_OPTIONS = [
-    "Valkyrie", "Super Valkyrie", "Super Wall Breaker", "Wall Breaker",
-    "Sneaky Goblin", "Healer", "Electro Dragon", "Dragon", "Balloon",
-    "Root Rider", "Barbarian Squad", "Archer Squad", "Bowler",
-    "Hog Rider", "Miner", "Yeti", "P.E.K.K.A"
+    # Regular Elixir Troops
+    "Barbarian", "Archer", "Giant", "Goblin", "Wall Breaker",
+    "Balloon", "Wizard", "Healer", "Dragon", "P.E.K.K.A",
+    "Baby Dragon", "Miner", "Electro Dragon", "Yeti", "Dragon Rider",
+    "Electro Titan", "Root Rider", "Thrower",
+
+    # Dark Elixir Troops
+    "Minion", "Hog Rider", "Valkyrie", "Golem", "Witch",
+    "Lava Hound", "Bowler", "Ice Golem", "Headhunter", "Apprentice Warden",
+    "Druid", "Furnace", "Momma", "Ruin Witch", "Meteor Golem",
+
+    # Super Troops
+    "Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker",
+    "Rocket Balloon", "Super Wizard", "Super Dragon", "Inferno Dragon", "Super Minion",
+    "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Miner",
+    "Super Hog Rider", "Super Yeti",
+
+    # Squads
+    "Barbarian Squad", "Archer Squad"
 ]
 
 SIEGE_OPTIONS = [
@@ -133,11 +197,13 @@ SIEGE_OPTIONS = [
 
 SPELL_OPTIONS = [
     "Earthquake", "Lightning", "Rage", "Freeze", "Jump",
-    "Poison", "Haste", "Healing", "Skeleton", "Heroic Spell"
+    "Poison", "Haste", "Healing", "Skeleton", "Invisibility",
+    "Bat Spell", "Clone Spell", "Overgrowth", "Recall Spell", "Revive Spell", "Heroic Spell"
 ]
 
 PRIORITY_OPTIONS = [
-    "1st (Drop First)", "2nd (Drop Second)", "3rd (Drop Third)", "4th (Drop Fourth)"
+    f"{i}{'st' if i==1 else 'nd' if i==2 else 'rd' if i==3 else 'th'} (Drop {'First' if i==1 else 'Second' if i==2 else 'Third' if i==3 else 'Fourth' if i==4 else f'#{i}'})"
+    for i in range(1, 16)
 ]
 
 
@@ -193,7 +259,7 @@ class DashboardApp(ctk.CTk):
         except Exception as e:
             logger.debug(f"macOS paint trigger: {e}")
 
-    def _load_ctk_image(self, rel_path: str, size: Tuple[int, int] = (36, 36)) -> Optional[ctk.CTkImage]:
+    def _load_ctk_image(self, rel_path: str, size: Tuple[int, int] = (36, 48)) -> Optional[ctk.CTkImage]:
         """Loads and caches a CTkImage from a relative project asset path safely."""
         try:
             from PIL import Image
@@ -759,14 +825,14 @@ class DashboardApp(ctk.CTk):
 
         # ----------------- MAIN VIEW (Tabbed Layout) -----------------
         main_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#18181b")
-        main_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 8), pady=8)
+        main_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 6), pady=(4, 6))
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_rowconfigure(0, weight=0)
         main_frame.grid_rowconfigure(1, weight=1)
 
         # Header with State, Shortcuts & Quick Action Buttons
         header_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, padx=16, pady=(12, 6), sticky="ew")
+        header_frame.grid(row=0, column=0, padx=8, pady=(4, 2), sticky="ew")
 
         # Left side: Active State Pill
         lbl_state_title = ctk.CTkLabel(header_frame, text="Active State:", font=ctk.CTkFont(size=13, weight="bold"))
@@ -865,7 +931,7 @@ class DashboardApp(ctk.CTk):
         # Tab 1: Live Telemetry & Feed
         # Tab 2: Army Setup & Drop Sequencer
         self.main_tabview = ctk.CTkTabview(main_frame, corner_radius=10, fg_color="#18181b")
-        self.main_tabview.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 6))
+        self.main_tabview.grid(row=1, column=0, sticky="nsew", padx=6, pady=(0, 4))
         self.main_tabview.grid_columnconfigure(0, weight=1)
         self.main_tabview.grid_rowconfigure(0, weight=1)
 
@@ -968,148 +1034,103 @@ class DashboardApp(ctk.CTk):
             scrollbar_button_color="#3f3f46",
             scrollbar_button_hover_color="#52525b"
         )
-        scroll.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+        scroll.grid(row=0, column=0, sticky="nsew", padx=4, pady=2)
         scroll.grid_columnconfigure(0, weight=1)
 
-        # Header banner
+        # Header banner (tightened top padding)
         lbl_hdr = ctk.CTkLabel(
             scroll,
             text=safe_text("⚔️ Army Composition & Drop Sequencer (TH17 Ready)"),
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#38bdf8"
         )
-        lbl_hdr.grid(row=0, column=0, padx=8, pady=(4, 2), sticky="w")
+        lbl_hdr.grid(row=0, column=0, padx=6, pady=(2, 1), sticky="w")
 
         lbl_desc = ctk.CTkLabel(
             scroll,
-            text="Configure army squad, siege machine, hero lineup, and custom deployment priority.\nUnits deploy in combat strictly according to your selected drop sequence order.",
+            text="Configure dynamic army squad, siege machine, complete 6-hero lineup, and drop sequencer.\nUnits deploy in combat strictly according to your selected drop sequence order.",
             font=ctk.CTkFont(size=11),
             text_color="#9ca3af",
             justify="left"
         )
-        lbl_desc.grid(row=1, column=0, padx=8, pady=(0, 10), sticky="w")
+        lbl_desc.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="w")
 
         # -------------------------------------------------------------
-        # 1. TROOPS SQUAD & DROP SEQUENCE PRIORITY
+        # 1. DYNAMIC TROOPS SQUAD & DROP SEQUENCE PRIORITY
         # -------------------------------------------------------------
         card_troops = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_troops.grid(row=2, column=0, padx=8, pady=(0, 10), sticky="ew")
-        card_troops.grid_columnconfigure(2, weight=1)
+        card_troops.grid(row=2, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_troops.grid_columnconfigure(0, weight=1)
+
+        t_hdr_frame = ctk.CTkFrame(card_troops, fg_color="transparent")
+        t_hdr_frame.grid(row=0, column=0, padx=10, pady=(8, 4), sticky="ew")
+        t_hdr_frame.grid_columnconfigure(0, weight=1)
 
         lbl_t_hdr = ctk.CTkLabel(
-            card_troops,
-            text=safe_text("🎯 Troop Squads & Drop Sequence (Priority Order):"),
+            t_hdr_frame,
+            text=safe_text("🎯 Troop Squads & Drop Sequence (Dynamic Slots):"),
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#fbbf24"
         )
-        lbl_t_hdr.grid(row=0, column=0, columnspan=6, padx=12, pady=(10, 6), sticky="w")
+        lbl_t_hdr.pack(side="left")
 
-        self.troop_enabled_vars = []
-        self.troop_unit_vars = []
-        self.troop_qty_vars = []
-        self.troop_prio_vars = []
-        self.troop_icon_labels = []
+        btn_add_troop = ctk.CTkButton(
+            t_hdr_frame,
+            text="+ Add Troop Slot",
+            width=130,
+            height=26,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._add_troop_slot
+        )
+        btn_add_troop.pack(side="right")
+
+        self.troop_rows_frame = ctk.CTkFrame(card_troops, fg_color="transparent")
+        self.troop_rows_frame.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="ew")
+        self.troop_rows_frame.grid_columnconfigure(0, weight=1)
+
+        self.troop_slot_rows = []
 
         cfg_troops = getattr(self.config.deployment.army, "troops", [])
-        default_troop_names = ["Valkyrie", "Super Wall Breaker", "Healer", "Sneaky Goblin"]
-        default_quantities = [24, 4, 5, 10]
-
-        for s_idx in range(4):
-            if s_idx < len(cfg_troops):
-                cfg_t = cfg_troops[s_idx]
-                t_en = getattr(cfg_t, "enabled", s_idx < 2)
+        if cfg_troops:
+            for s_idx, cfg_t in enumerate(cfg_troops):
+                t_en = getattr(cfg_t, "enabled", True)
                 t_name_raw = getattr(cfg_t, "name", "valkyrie").replace("_", " ").title()
-                matched_name = default_troop_names[s_idx]
-                for opt in TROOP_OPTIONS:
-                    if opt.lower().replace(" ", "") == t_name_raw.lower().replace(" ", ""):
-                        matched_name = opt
-                        break
-                t_qty = str(getattr(cfg_t, "expected_quantity", default_quantities[s_idx]))
-                prio_idx = min(3, max(0, getattr(cfg_t, "priority", s_idx + 1) - 1))
-                t_prio = PRIORITY_OPTIONS[prio_idx]
-            else:
-                t_en = (s_idx < 2)
-                matched_name = default_troop_names[s_idx]
-                t_qty = str(default_quantities[s_idx])
-                t_prio = PRIORITY_OPTIONS[s_idx]
-
-            en_var = ctk.BooleanVar(value=t_en)
-            unit_var = ctk.StringVar(value=matched_name)
-            qty_var = ctk.StringVar(value=t_qty)
-            prio_var = ctk.StringVar(value=t_prio)
-
-            self.troop_enabled_vars.append(en_var)
-            self.troop_unit_vars.append(unit_var)
-            self.troop_qty_vars.append(qty_var)
-            self.troop_prio_vars.append(prio_var)
-
-            row_i = s_idx + 1
-
-            chk_t = ctk.CTkCheckBox(
-                card_troops,
-                text=f"Slot {s_idx+1}:",
-                variable=en_var,
-                width=65,
-                font=ctk.CTkFont(size=11, weight="bold")
-            )
-            chk_t.grid(row=row_i, column=0, padx=(12, 4), pady=4, sticky="w")
-
-            lbl_ico = ctk.CTkLabel(card_troops, text="", width=32, height=32)
-            lbl_ico.grid(row=row_i, column=1, padx=4, pady=4)
-            self.troop_icon_labels.append(lbl_ico)
-
-            opt_t = ctk.CTkOptionMenu(
-                card_troops,
-                variable=unit_var,
-                values=TROOP_OPTIONS,
-                width=140,
-                height=26,
-                command=lambda v, idx=s_idx: self._update_troop_icon_preview(idx)
-            )
-            opt_t.grid(row=row_i, column=2, padx=4, pady=4, sticky="w")
-
-            lbl_q = ctk.CTkLabel(card_troops, text="Qty:", font=ctk.CTkFont(size=11))
-            lbl_q.grid(row=row_i, column=3, padx=(4, 2), pady=4, sticky="e")
-            ent_q = ctk.CTkEntry(card_troops, textvariable=qty_var, width=44, height=26, justify="center")
-            ent_q.grid(row=row_i, column=4, padx=(2, 6), pady=4)
-
-            opt_p = ctk.CTkOptionMenu(
-                card_troops,
-                variable=prio_var,
-                values=PRIORITY_OPTIONS,
-                width=130,
-                height=26
-            )
-            opt_p.grid(row=row_i, column=5, padx=(4, 12), pady=4, sticky="e")
-
-            self._update_troop_icon_preview(s_idx)
+                t_qty = int(getattr(cfg_t, "expected_quantity", 20))
+                prio_val = int(getattr(cfg_t, "priority", s_idx + 1))
+                prio_idx = min(len(PRIORITY_OPTIONS) - 1, max(0, prio_val - 1))
+                self._add_troop_slot(unit_name=t_name_raw, qty=t_qty, prio_idx=prio_idx, enabled=t_en)
+        else:
+            self._add_troop_slot(unit_name="Valkyrie", qty=24, prio_idx=0, enabled=True)
+            self._add_troop_slot(unit_name="Super Wall Breaker", qty=4, prio_idx=1, enabled=True)
 
         # -------------------------------------------------------------
-        # 2. SIEGE MACHINE (SLOT 2 - BETWEEN TROOPS & HEROES)
+        # 2. SIEGE MACHINE (SLOT BETWEEN TROOPS & HEROES)
         # -------------------------------------------------------------
         card_siege = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_siege.grid(row=3, column=0, padx=8, pady=(0, 10), sticky="ew")
+        card_siege.grid(row=3, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_siege.grid_columnconfigure(2, weight=1)
 
         lbl_s_hdr = ctk.CTkLabel(
             card_siege,
-            text=safe_text("🛡️ Siege Machine (Deployment Slot 2):"),
+            text=safe_text("🛡️ Siege Machine (Deployment Slot):"),
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#38bdf8"
         )
-        lbl_s_hdr.grid(row=0, column=0, columnspan=4, padx=12, pady=(10, 4), sticky="w")
+        lbl_s_hdr.grid(row=0, column=0, columnspan=4, padx=10, pady=(8, 4), sticky="w")
 
         self.chk_siege_var = ctk.BooleanVar(value=getattr(self.config.deployment, "deploy_siege", True))
         chk_siege = ctk.CTkCheckBox(
             card_siege,
-            text="Deploy Siege Machine (1 single tap drop, never spammed as troop or activated as hero)",
+            text="Deploy Siege Machine (single tap drop, never spammed as troop or triggered as hero ability)",
             variable=self.chk_siege_var,
             font=ctk.CTkFont(size=11)
         )
-        chk_siege.grid(row=1, column=0, columnspan=3, padx=12, pady=(0, 6), sticky="w")
+        chk_siege.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 6), sticky="w")
 
-        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=36, height=36)
-        self.lbl_siege_icon.grid(row=2, column=0, padx=(12, 6), pady=(0, 10))
+        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=40, height=52)
+        self.lbl_siege_icon.grid(row=2, column=0, padx=(10, 6), pady=(0, 8))
 
         curr_siege_name = "Siege Barracks"
         cfg_sieges = getattr(self.config.deployment.army, "siege", [])
@@ -1129,31 +1150,33 @@ class DashboardApp(ctk.CTk):
             height=26,
             command=lambda v: self._update_siege_icon_preview()
         )
-        opt_siege.grid(row=2, column=1, padx=6, pady=(0, 10), sticky="w")
+        opt_siege.grid(row=2, column=1, padx=6, pady=(0, 8), sticky="w")
         self._update_siege_icon_preview()
 
         # -------------------------------------------------------------
-        # 3. HEROES (TH17 CONTEXT - 4 HEROES WITH ATTACK RIBBON ICONS)
+        # 3. HEROES (TH17 COMPLETE 6 HERO ROSTER)
         # -------------------------------------------------------------
         card_heroes = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_heroes.grid(row=4, column=0, padx=8, pady=(0, 10), sticky="ew")
-        for c_i in range(4):
+        card_heroes.grid(row=4, column=0, padx=6, pady=(0, 8), sticky="ew")
+        for c_i in range(6):
             card_heroes.grid_columnconfigure(c_i, weight=1)
 
         lbl_h_hdr = ctk.CTkLabel(
             card_heroes,
-            text=safe_text("👑 Active Heroes (Town Hall 17 Hero Roster):"),
+            text=safe_text("👑 Active Heroes (Town Hall 17 Hero Roster - 6 Heroes):"),
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#f43f5e"
         )
-        lbl_h_hdr.grid(row=0, column=0, columnspan=4, padx=12, pady=(10, 6), sticky="w")
+        lbl_h_hdr.grid(row=0, column=0, columnspan=6, padx=10, pady=(8, 4), sticky="w")
 
         self.hero_vars = {}
         hero_defs = [
-            ("minion_prince", "Minion Prince", "assets/heroes/minion_prince.png"),
+            ("barbarian_king", "Barbarian King", "assets/heroes/barbarian_king.png"),
             ("archer_queen", "Archer Queen", "assets/heroes/archer_queen.png"),
             ("grand_warden", "Grand Warden", "assets/heroes/grand_warden.png"),
-            ("barbarian_king", "Barbarian King", "assets/heroes/barbarian_king.png"),
+            ("royal_champion", "Royal Champion", "assets/heroes/royal_champion.png"),
+            ("minion_prince", "Minion Prince", "assets/heroes/minion_prince.png"),
+            ("dragon_duke", "Dragon Duke", "assets/heroes/dragon_duke.png"),
         ]
 
         cfg_heroes = getattr(self.config.deployment.army, "heroes", [])
@@ -1166,12 +1189,13 @@ class DashboardApp(ctk.CTk):
 
         for idx, (h_key, h_display, h_icon_path) in enumerate(hero_defs):
             h_frame = ctk.CTkFrame(card_heroes, fg_color="#18181b", corner_radius=8)
-            h_frame.grid(row=1, column=idx, padx=6, pady=(0, 8), sticky="ew")
+            h_frame.grid(row=1, column=idx, padx=3, pady=(0, 6), sticky="ew")
             h_frame.grid_columnconfigure(0, weight=1)
 
-            h_img = self._load_ctk_image(h_icon_path, size=(38, 38))
+            # Rectangular attack ribbon card icon: 42x56
+            h_img = self._load_ctk_image(h_icon_path, size=(42, 56))
             lbl_h_ico = ctk.CTkLabel(h_frame, text="", image=h_img)
-            lbl_h_ico.grid(row=0, column=0, pady=(6, 2))
+            lbl_h_ico.grid(row=0, column=0, pady=(4, 2))
 
             is_active = cfg_hero_active_map.get(h_key, True)
             h_var = ctk.BooleanVar(value=is_active)
@@ -1181,13 +1205,13 @@ class DashboardApp(ctk.CTk):
                 h_frame,
                 text=h_display,
                 variable=h_var,
-                font=ctk.CTkFont(size=11, weight="bold")
+                font=ctk.CTkFont(size=10, weight="bold")
             )
-            chk_h.grid(row=1, column=0, padx=6, pady=(0, 8))
+            chk_h.grid(row=1, column=0, padx=2, pady=(0, 6))
 
         # Hero Ability Delay
         delay_row = ctk.CTkFrame(card_heroes, fg_color="transparent")
-        delay_row.grid(row=2, column=0, columnspan=4, padx=12, pady=(0, 8), sticky="ew")
+        delay_row.grid(row=2, column=0, columnspan=6, padx=10, pady=(0, 6), sticky="ew")
         lbl_del = ctk.CTkLabel(delay_row, text="Ability Delay (s):", font=ctk.CTkFont(size=11, weight="bold"))
         lbl_del.pack(side="left", padx=(0, 6))
 
@@ -1200,56 +1224,55 @@ class DashboardApp(ctk.CTk):
         lbl_del_hint.pack(side="left")
 
         # -------------------------------------------------------------
-        # 4. SPELLS (SLOT TRAILING HEROES)
+        # 4. SPELLS (DYNAMIC SPELL ARSENAL)
         # -------------------------------------------------------------
         card_spells = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_spells.grid(row=5, column=0, padx=8, pady=(0, 10), sticky="ew")
-        card_spells.grid_columnconfigure(2, weight=1)
+        card_spells.grid(row=5, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_spells.grid_columnconfigure(0, weight=1)
+
+        sp_hdr_frame = ctk.CTkFrame(card_spells, fg_color="transparent")
+        sp_hdr_frame.grid(row=0, column=0, padx=10, pady=(8, 4), sticky="ew")
+        sp_hdr_frame.grid_columnconfigure(0, weight=1)
 
         lbl_sp_hdr = ctk.CTkLabel(
-            card_spells,
-            text=safe_text("⚡ Spell Arsenal (Cast Across Base Targets):"),
+            sp_hdr_frame,
+            text=safe_text("⚡ Spell Arsenal (Dynamic Spell Slots):"),
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#a855f7"
         )
-        lbl_sp_hdr.grid(row=0, column=0, columnspan=4, padx=12, pady=(10, 4), sticky="w")
+        lbl_sp_hdr.pack(side="left")
+
+        btn_add_spell = ctk.CTkButton(
+            sp_hdr_frame,
+            text="+ Add Spell Slot",
+            width=130,
+            height=26,
+            fg_color="#a855f7",
+            hover_color="#9333ea",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._add_spell_slot
+        )
+        btn_add_spell.pack(side="right")
 
         self.chk_spells_var = ctk.BooleanVar(value=getattr(self.config.deployment, "deploy_spells", True))
         chk_sp = ctk.CTkCheckBox(card_spells, text="Deploy Spells in Attack", variable=self.chk_spells_var, font=ctk.CTkFont(size=11))
-        chk_sp.grid(row=1, column=0, columnspan=3, padx=12, pady=(0, 6), sticky="w")
+        chk_sp.grid(row=1, column=0, padx=10, pady=(0, 4), sticky="w")
 
-        self.lbl_spell_icon = ctk.CTkLabel(card_spells, text="", width=36, height=36)
-        self.lbl_spell_icon.grid(row=2, column=0, padx=(12, 6), pady=(0, 10))
+        self.spell_rows_frame = ctk.CTkFrame(card_spells, fg_color="transparent")
+        self.spell_rows_frame.grid(row=2, column=0, padx=6, pady=(0, 6), sticky="ew")
+        self.spell_rows_frame.grid_columnconfigure(0, weight=1)
 
-        curr_spell_name = "Earthquake"
-        curr_spell_qty = "11"
+        self.spell_slot_rows = []
+
         cfg_spells = getattr(self.config.deployment.army, "spells", [])
-        if cfg_spells and getattr(cfg_spells[0], "name", None):
-            sp_cand = cfg_spells[0].name.replace("_", " ").title()
-            for opt in SPELL_OPTIONS:
-                if opt.lower().replace(" ", "") == sp_cand.lower().replace(" ", ""):
-                    curr_spell_name = opt
-                    break
-            curr_spell_qty = str(getattr(cfg_spells[0], "expected_quantity", 11))
-
-        self.spell_unit_var = ctk.StringVar(value=curr_spell_name)
-        opt_spell = ctk.CTkOptionMenu(
-            card_spells,
-            variable=self.spell_unit_var,
-            values=SPELL_OPTIONS,
-            width=180,
-            height=26,
-            command=lambda v: self._update_spell_icon_preview()
-        )
-        opt_spell.grid(row=2, column=1, padx=6, pady=(0, 10), sticky="w")
-
-        lbl_sp_cnt = ctk.CTkLabel(card_spells, text="Quantity:", font=ctk.CTkFont(size=11))
-        lbl_sp_cnt.grid(row=2, column=2, padx=4, pady=(0, 10), sticky="e")
-
-        self.spell_qty_var = ctk.StringVar(value=curr_spell_qty)
-        ent_sp_q = ctk.CTkEntry(card_spells, textvariable=self.spell_qty_var, width=50, height=26, justify="center")
-        ent_sp_q.grid(row=2, column=3, padx=(4, 12), pady=(0, 10), sticky="w")
-        self._update_spell_icon_preview()
+        if cfg_spells:
+            for s_idx, cfg_sp in enumerate(cfg_spells):
+                sp_en = getattr(cfg_sp, "enabled", True)
+                sp_name_raw = getattr(cfg_sp, "name", "earthquake").replace("_", " ").title()
+                sp_qty = int(getattr(cfg_sp, "expected_quantity", 11))
+                self._add_spell_slot(spell_name=sp_name_raw, qty=sp_qty, enabled=sp_en)
+        else:
+            self._add_spell_slot(spell_name="Earthquake", qty=11, enabled=True)
 
         # -------------------------------------------------------------
         # 5. SAVE & APPLY BUTTON
@@ -1263,28 +1286,247 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._save_army_configuration
         )
-        btn_save.grid(row=6, column=0, padx=8, pady=(4, 16), sticky="ew")
+        btn_save.grid(row=6, column=0, padx=6, pady=(4, 12), sticky="ew")
+
+    # -----------------------------------------------------------------
+    # DYNAMIC TROOP & SPELL MANAGEMENT
+    # -----------------------------------------------------------------
+    def _add_troop_slot(self, unit_name: str = "Valkyrie", qty: int = 20, prio_idx: Optional[int] = None, enabled: bool = True) -> None:
+        idx = len(self.troop_slot_rows)
+        row_frame = ctk.CTkFrame(self.troop_rows_frame, fg_color="#18181b", corner_radius=6)
+        row_frame.pack(fill="x", padx=2, pady=2)
+        row_frame.grid_columnconfigure(2, weight=1)
+
+        en_var = ctk.BooleanVar(value=enabled)
+        matched_unit = unit_name
+        for opt in TROOP_OPTIONS:
+            if opt.lower().replace(" ", "").replace("_", "") == unit_name.lower().replace(" ", "").replace("_", ""):
+                matched_unit = opt
+                break
+        unit_var = ctk.StringVar(value=matched_unit)
+        qty_var = ctk.StringVar(value=str(qty))
+
+        if prio_idx is None:
+            prio_idx = min(len(PRIORITY_OPTIONS) - 1, idx)
+        prio_var = ctk.StringVar(value=PRIORITY_OPTIONS[prio_idx])
+
+        chk_t = ctk.CTkCheckBox(
+            row_frame,
+            text=f"Slot {idx+1}:",
+            variable=en_var,
+            width=65,
+            font=ctk.CTkFont(size=11, weight="bold")
+        )
+        chk_t.grid(row=0, column=0, padx=(6, 2), pady=3, sticky="w")
+
+        lbl_ico = ctk.CTkLabel(row_frame, text="", width=36, height=48)
+        lbl_ico.grid(row=0, column=1, padx=3, pady=3)
+
+        row_data = {
+            "frame": row_frame,
+            "en_var": en_var,
+            "unit_var": unit_var,
+            "qty_var": qty_var,
+            "prio_var": prio_var,
+            "chk_t": chk_t,
+            "lbl_ico": lbl_ico,
+        }
+
+        opt_t = ctk.CTkOptionMenu(
+            row_frame,
+            variable=unit_var,
+            values=TROOP_OPTIONS,
+            width=150,
+            height=26,
+            command=lambda v, r=row_data: self._update_troop_row_icon(r)
+        )
+        opt_t.grid(row=0, column=2, padx=3, pady=3, sticky="w")
+
+        lbl_q = ctk.CTkLabel(row_frame, text="Qty:", font=ctk.CTkFont(size=11))
+        lbl_q.grid(row=0, column=3, padx=(3, 2), pady=3, sticky="e")
+        ent_q = ctk.CTkEntry(row_frame, textvariable=qty_var, width=44, height=26, justify="center")
+        ent_q.grid(row=0, column=4, padx=(2, 4), pady=3)
+
+        opt_p = ctk.CTkOptionMenu(
+            row_frame,
+            variable=prio_var,
+            values=PRIORITY_OPTIONS,
+            width=140,
+            height=26
+        )
+        opt_p.grid(row=0, column=5, padx=3, pady=3, sticky="e")
+
+        btn_del = ctk.CTkButton(
+            row_frame,
+            text="✕",
+            width=26,
+            height=26,
+            fg_color="#3f3f46",
+            hover_color="#ef4444",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda r=row_data: self._remove_troop_slot(r)
+        )
+        btn_del.grid(row=0, column=6, padx=(3, 6), pady=3)
+
+        row_data["opt_t"] = opt_t
+        row_data["ent_q"] = ent_q
+        row_data["opt_p"] = opt_p
+        row_data["btn_del"] = btn_del
+
+        self.troop_slot_rows.append(row_data)
+        self._update_troop_row_icon(row_data)
+        self._rebuild_troop_slot_indices()
+
+    def _remove_troop_slot(self, row_data: dict) -> None:
+        if row_data in self.troop_slot_rows:
+            self.troop_slot_rows.remove(row_data)
+            row_data["frame"].destroy()
+            self._rebuild_troop_slot_indices()
+
+    def _rebuild_troop_slot_indices(self) -> None:
+        for idx, row in enumerate(self.troop_slot_rows):
+            row["chk_t"].configure(text=f"Slot {idx+1}:")
+
+    def _update_troop_row_icon(self, row_data: dict) -> None:
+        unit_name = row_data["unit_var"].get()
+        rel_path = UNIT_ASSET_MAP.get(unit_name)
+        img = self._load_ctk_image(rel_path, size=(36, 48)) if rel_path else None
+        row_data["lbl_ico"].configure(image=img)
 
     def _update_troop_icon_preview(self, idx: int) -> None:
-        if 0 <= idx < len(self.troop_unit_vars) and idx < len(self.troop_icon_labels):
-            unit_name = self.troop_unit_vars[idx].get()
-            rel_path = UNIT_ASSET_MAP.get(unit_name)
-            img = self._load_ctk_image(rel_path, size=(30, 30)) if rel_path else None
-            self.troop_icon_labels[idx].configure(image=img)
+        if 0 <= idx < len(self.troop_slot_rows):
+            self._update_troop_row_icon(self.troop_slot_rows[idx])
+
+    def _add_spell_slot(self, spell_name: str = "Earthquake", qty: int = 11, enabled: bool = True) -> None:
+        idx = len(self.spell_slot_rows)
+        row_frame = ctk.CTkFrame(self.spell_rows_frame, fg_color="#18181b", corner_radius=6)
+        row_frame.pack(fill="x", padx=2, pady=2)
+        row_frame.grid_columnconfigure(2, weight=1)
+
+        en_var = ctk.BooleanVar(value=enabled)
+        matched_sp = spell_name
+        for opt in SPELL_OPTIONS:
+            if opt.lower().replace(" ", "").replace("_", "") == spell_name.lower().replace(" ", "").replace("_", ""):
+                matched_sp = opt
+                break
+        unit_var = ctk.StringVar(value=matched_sp)
+        qty_var = ctk.StringVar(value=str(qty))
+
+        chk_sp = ctk.CTkCheckBox(
+            row_frame,
+            text=f"Spell {idx+1}:",
+            variable=en_var,
+            width=75,
+            font=ctk.CTkFont(size=11, weight="bold")
+        )
+        chk_sp.grid(row=0, column=0, padx=(6, 2), pady=3, sticky="w")
+
+        lbl_ico = ctk.CTkLabel(row_frame, text="", width=36, height=48)
+        lbl_ico.grid(row=0, column=1, padx=3, pady=3)
+
+        row_data = {
+            "frame": row_frame,
+            "en_var": en_var,
+            "unit_var": unit_var,
+            "qty_var": qty_var,
+            "chk_sp": chk_sp,
+            "lbl_ico": lbl_ico,
+        }
+
+        opt_sp = ctk.CTkOptionMenu(
+            row_frame,
+            variable=unit_var,
+            values=SPELL_OPTIONS,
+            width=170,
+            height=26,
+            command=lambda v, r=row_data: self._update_spell_row_icon(r)
+        )
+        opt_sp.grid(row=0, column=2, padx=3, pady=3, sticky="w")
+
+        lbl_q = ctk.CTkLabel(row_frame, text="Qty:", font=ctk.CTkFont(size=11))
+        lbl_q.grid(row=0, column=3, padx=(3, 2), pady=3, sticky="e")
+        ent_q = ctk.CTkEntry(row_frame, textvariable=qty_var, width=50, height=26, justify="center")
+        ent_q.grid(row=0, column=4, padx=(2, 6), pady=3)
+
+        btn_del = ctk.CTkButton(
+            row_frame,
+            text="✕",
+            width=26,
+            height=26,
+            fg_color="#3f3f46",
+            hover_color="#ef4444",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=lambda r=row_data: self._remove_spell_slot(r)
+        )
+        btn_del.grid(row=0, column=5, padx=(3, 6), pady=3)
+
+        row_data["opt_sp"] = opt_sp
+        row_data["ent_q"] = ent_q
+        row_data["btn_del"] = btn_del
+
+        self.spell_slot_rows.append(row_data)
+        self._update_spell_row_icon(row_data)
+        self._rebuild_spell_slot_indices()
+
+    def _remove_spell_slot(self, row_data: dict) -> None:
+        if row_data in self.spell_slot_rows:
+            self.spell_slot_rows.remove(row_data)
+            row_data["frame"].destroy()
+            self._rebuild_spell_slot_indices()
+
+    def _rebuild_spell_slot_indices(self) -> None:
+        for idx, row in enumerate(self.spell_slot_rows):
+            row["chk_sp"].configure(text=f"Spell {idx+1}:")
+
+    def _update_spell_row_icon(self, row_data: dict) -> None:
+        spell_name = row_data["unit_var"].get()
+        rel_path = UNIT_ASSET_MAP.get(spell_name)
+        img = self._load_ctk_image(rel_path, size=(36, 48)) if rel_path else None
+        row_data["lbl_ico"].configure(image=img)
+
+    def _update_spell_icon_preview(self, idx: int = 0) -> None:
+        if 0 <= idx < len(self.spell_slot_rows):
+            self._update_spell_row_icon(self.spell_slot_rows[idx])
 
     def _update_siege_icon_preview(self) -> None:
         if hasattr(self, "lbl_siege_icon") and hasattr(self, "siege_unit_var"):
             unit_name = self.siege_unit_var.get()
             rel_path = UNIT_ASSET_MAP.get(unit_name)
-            img = self._load_ctk_image(rel_path, size=(34, 34)) if rel_path else None
+            img = self._load_ctk_image(rel_path, size=(40, 50)) if rel_path else None
             self.lbl_siege_icon.configure(image=img)
 
-    def _update_spell_icon_preview(self) -> None:
-        if hasattr(self, "lbl_spell_icon") and hasattr(self, "spell_unit_var"):
-            unit_name = self.spell_unit_var.get()
-            rel_path = UNIT_ASSET_MAP.get(unit_name)
-            img = self._load_ctk_image(rel_path, size=(34, 34)) if rel_path else None
-            self.lbl_spell_icon.configure(image=img)
+    # Backward compatibility properties for any scripts or test suites
+    @property
+    def troop_enabled_vars(self):
+        return [r["en_var"] for r in self.troop_slot_rows]
+
+    @property
+    def troop_unit_vars(self):
+        return [r["unit_var"] for r in self.troop_slot_rows]
+
+    @property
+    def troop_qty_vars(self):
+        return [r["qty_var"] for r in self.troop_slot_rows]
+
+    @property
+    def troop_prio_vars(self):
+        return [r["prio_var"] for r in self.troop_slot_rows]
+
+    @property
+    def troop_icon_labels(self):
+        return [r["lbl_ico"] for r in self.troop_slot_rows]
+
+    @property
+    def spell_unit_var(self):
+        return self.spell_slot_rows[0]["unit_var"] if self.spell_slot_rows else ctk.StringVar(value="Earthquake")
+
+    @property
+    def spell_qty_var(self):
+        return self.spell_slot_rows[0]["qty_var"] if self.spell_slot_rows else ctk.StringVar(value="11")
+
+    @property
+    def lbl_spell_icon(self):
+        return self.spell_slot_rows[0]["lbl_ico"] if self.spell_slot_rows else ctk.CTkLabel(self, text="")
 
     def _save_army_configuration(self) -> None:
         try:
@@ -1292,42 +1534,18 @@ class DashboardApp(ctk.CTk):
                 TroopUnitConfig, SiegeUnitConfig, HeroUnitConfig, SpellUnitConfig, ArmyConfig
             )
 
-            prio_map = {
-                "1st (Drop First)": 1,
-                "2nd (Drop Second)": 2,
-                "3rd (Drop Third)": 3,
-                "4th (Drop Fourth)": 4,
-            }
-            name_norm = {
-                "Valkyrie": "valkyrie",
-                "Super Valkyrie": "super_valkyrie",
-                "Super Wall Breaker": "super_wall_breaker",
-                "Wall Breaker": "wall_breaker",
-                "Sneaky Goblin": "sneaky_goblin",
-                "Healer": "healer",
-                "Electro Dragon": "electro_dragon",
-                "Dragon": "dragon",
-                "Balloon": "balloon",
-                "Root Rider": "root_rider",
-                "Barbarian Squad": "barbarian_squad",
-                "Archer Squad": "archer_squad",
-                "Bowler": "bowler",
-                "Hog Rider": "hog_rider",
-                "Miner": "miner",
-                "Yeti": "yeti",
-                "P.E.K.K.A": "pekka",
-            }
             troops = []
-            for i in range(len(self.troop_enabled_vars)):
-                en = self.troop_enabled_vars[i].get()
-                uname = self.troop_unit_vars[i].get()
-                prio_str = self.troop_prio_vars[i].get()
+            for idx, row in enumerate(self.troop_slot_rows):
+                en = row["en_var"].get()
+                uname = row["unit_var"].get()
+                prio_str = row["prio_var"].get()
                 try:
-                    qty = int(self.troop_qty_vars[i].get())
+                    qty = int(row["qty_var"].get())
                 except ValueError:
                     qty = 10
-                prio = prio_map.get(prio_str, i + 1)
-                norm_name = name_norm.get(uname, uname.lower().replace(" ", "_"))
+                prio_digits = re.findall(r"\d+", prio_str)
+                prio = int(prio_digits[0]) if prio_digits else idx + 1
+                norm_name = uname.lower().replace(" ", "_").replace(".", "")
                 troops.append(TroopUnitConfig(name=norm_name, expected_quantity=qty, priority=prio, enabled=en))
 
             s_name = self.siege_unit_var.get()
@@ -1345,14 +1563,17 @@ class DashboardApp(ctk.CTk):
             except ValueError:
                 ability_delay = 6.0
 
-            sp_name = self.spell_unit_var.get()
             sp_en = self.chk_spells_var.get()
-            try:
-                sp_qty = int(self.spell_qty_var.get())
-            except ValueError:
-                sp_qty = 11
-            sp_norm = sp_name.lower().replace(" ", "_")
-            spells = [SpellUnitConfig(name=sp_norm, expected_quantity=sp_qty, enabled=sp_en)]
+            spells = []
+            for row in self.spell_slot_rows:
+                row_en = row["en_var"].get() and sp_en
+                sp_name = row["unit_var"].get()
+                try:
+                    sp_qty = int(row["qty_var"].get())
+                except ValueError:
+                    sp_qty = 1
+                sp_norm = sp_name.lower().replace(" ", "_")
+                spells.append(SpellUnitConfig(name=sp_norm, expected_quantity=sp_qty, enabled=row_en))
 
             new_army = ArmyConfig(
                 troops=troops,
@@ -1369,11 +1590,12 @@ class DashboardApp(ctk.CTk):
 
             self.config_manager.save(self.config)
 
-            if hasattr(self.controller, "state_machine"):
+            if self.controller is not None and getattr(self.controller, "state_machine", None) is not None:
                 self.controller.state_machine.config = self.config
 
             active_t_names = [t.name for t in troops if t.enabled]
-            self.log_event(f"Army saved: Troops={active_t_names}, Siege={'ON' if s_en else 'OFF'}, Heroes={active_hero_count}, Spells={sp_norm}x{sp_qty}")
+            active_sp_names = [f"{sp.name}x{sp.expected_quantity}" for sp in spells if sp.enabled]
+            self.log_event(f"Army saved: Troops={active_t_names}, Siege={'ON' if s_en else 'OFF'}, Heroes={active_hero_count}, Spells={active_sp_names}")
             self.notifier.announce("Army configuration saved and applied", chime="accept")
         except Exception as e:
             logger.error(f"Failed to save army configuration: {e}", exc_info=True)

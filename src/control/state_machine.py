@@ -764,7 +764,7 @@ class StateMachine:
             # Confirmation tap if siege is still not placed
             if cap:
                 chk_frame = cap.capture_frame()
-                if chk_frame is not None and not self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.SLOT_X_COORDINATES[s_slot]):
+                if chk_frame is not None and not self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(s_slot)):
                     self.executor.execute_deployment_action(deploy_s1)
                     time.sleep(0.10)
 
@@ -829,14 +829,14 @@ class StateMachine:
 
                     if cap:
                         chk_frame = cap.capture_frame()
-                        if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.SLOT_X_COORDINATES[t_slot]):
+                        if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(t_slot)):
                             logger.info(f"[DEPLOYMENT] Slot {t_slot} (Troops) fully depleted and greyed out after batch {batch+1}!")
                             break
 
         # 4B. COMPREHENSIVE TROOP SWEEP & DEPLETION VERIFICATION
         # Verify that NO active/colored troop slot was left behind on the ribbon
         if not self.is_stopped and not self.is_paused:
-            hero_first_slot = layout.hero_slots[0] if layout.hero_slots else len(self.deployment_planner.SLOT_X_COORDINATES)
+            hero_first_slot = layout.hero_slots[0] if layout.hero_slots else 99
             candidate_sweep_slots = sorted(list(set(layout.troop_slots + [s for s in layout.occupied_slots if s < hero_first_slot and s != layout.siege_slot])))
 
             for s in candidate_sweep_slots:
@@ -844,7 +844,7 @@ class StateMachine:
                     return
                 if cap:
                     chk_frame = cap.capture_frame()
-                    if chk_frame is not None and not self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.SLOT_X_COORDINATES[s]):
+                    if chk_frame is not None and not self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(s)):
                         logger.warning(f"[TROOP SWEEP] Slot {s} is still active/colored with remaining units! Executing rapid sweep depletion dump...")
                         sel_sweep = self.deployment_planner.generate_slot_select_action(s)
                         self.executor.execute_deployment_action(sel_sweep)
@@ -870,7 +870,7 @@ class StateMachine:
                             time.sleep(0.06)
 
                             chk_sweep = cap.capture_frame()
-                            if chk_sweep is not None and self.deployment_planner.is_slot_greyed_out(chk_sweep, self.deployment_planner.SLOT_X_COORDINATES[s]):
+                            if chk_sweep is not None and self.deployment_planner.is_slot_greyed_out(chk_sweep, self.deployment_planner.get_slot_x(s)):
                                 logger.info(f"[TROOP SWEEP] Slot {s} successfully verified fully depleted and greyed out!")
                                 break
 
@@ -909,13 +909,13 @@ class StateMachine:
 
                         if cap:
                             chk_frame = cap.capture_frame()
-                            if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.SLOT_X_COORDINATES[sp_slot]):
+                            if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(sp_slot)):
                                 logger.info(f"[DEPLOYMENT] Slot {sp_slot} (Spells) fully cast and greyed out!")
                                 break
 
                     if cap:
                         chk_frame = cap.capture_frame()
-                        if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.SLOT_X_COORDINATES[sp_slot]):
+                        if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(sp_slot)):
                             break
 
         # 6. WAIT BEFORE ACTIVATING HERO ABILITIES (USER CONFIGURED: REDUCED TO 6s)
@@ -942,7 +942,7 @@ class StateMachine:
                     action_type=ActionType.ACTIVATE_ABILITY,
                     target_name=f"Ability: {h_name}",
                     slot_index=slot_idx,
-                    norm_x=self.deployment_planner.SLOT_X_COORDINATES[slot_idx],
+                    norm_x=self.deployment_planner.get_slot_x(slot_idx),
                     norm_y=self.deployment_planner.RIBBON_Y,
                     tap_count=1,
                     delay_after_sec=0.12,
