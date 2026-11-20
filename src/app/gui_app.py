@@ -625,58 +625,12 @@ class DashboardApp(ctk.CTk):
         self.lbl_storage_summary.grid(row=6, column=0, columnspan=2, padx=10, pady=(2, 6), sticky="w")
         self._on_storage_limit_change()
 
-        # Army Deployment & Heroes Configuration Card (Home)
-        deploy_card = ctk.CTkFrame(self.home_controls_frame, fg_color="#18181b", corner_radius=8)
-        deploy_card.grid(row=6, column=0, padx=16, pady=(4, 8), sticky="ew")
-        deploy_card.grid_columnconfigure(0, weight=1)
-        deploy_card.grid_columnconfigure(1, weight=0)
-
-        lbl_deploy_title = ctk.CTkLabel(deploy_card, text=safe_text("⚔ Army & Heroes Setup:"), font=ctk.CTkFont(size=12, weight="bold"))
-        lbl_deploy_title.grid(row=0, column=0, columnspan=2, padx=(10, 4), pady=(6, 2), sticky="w")
-
-        # 1. Hero Count Selector
-        lbl_heroes = ctk.CTkLabel(deploy_card, text="Heroes in Army:", font=ctk.CTkFont(size=12))
-        lbl_heroes.grid(row=1, column=0, padx=(16, 4), pady=2, sticky="w")
-
-        curr_hero_count = getattr(self.config.deployment, "hero_count", 2)
-        hero_options = ["Auto-Detect", "0 Heroes", "1 Hero", "2 Heroes", "3 Heroes", "4 Heroes"]
-        if curr_hero_count == -1:
-            init_hero_str = "Auto-Detect"
-        else:
-            init_hero_str = f"{curr_hero_count} Heroes" if curr_hero_count != 1 else "1 Hero"
-            if init_hero_str not in hero_options:
-                init_hero_str = "2 Heroes"
-
+        # Army & hero deployment settings are configured in the dedicated "Army Setup & Sequencer" tab
+        curr_hero_count = getattr(self.config.deployment, "hero_count", 4)
+        init_hero_str = f"{curr_hero_count} Heroes" if curr_hero_count != 1 else "1 Hero"
         self.hero_count_var = ctk.StringVar(value=init_hero_str)
-        self.opt_heroes = ctk.CTkOptionMenu(
-            deploy_card,
-            variable=self.hero_count_var,
-            values=hero_options,
-            command=lambda v: self._on_deployment_settings_change(),
-            width=115,
-            height=24
-        )
-        self.opt_heroes.grid(row=1, column=1, padx=(4, 10), pady=2, sticky="e")
-
-        # 2. Hero Ability Delay (User requested 6s)
-        lbl_ability_delay = ctk.CTkLabel(deploy_card, text="Ability Delay (s):", font=ctk.CTkFont(size=12))
-        lbl_ability_delay.grid(row=2, column=0, padx=(16, 4), pady=2, sticky="w")
         init_ability_delay = getattr(self.config.deployment, "hero_ability_delay_seconds", 6.0)
         self.ent_ability_delay_var = ctk.StringVar(value=f"{init_ability_delay:.1f}".rstrip('0').rstrip('.'))
-        self.ent_ability_delay = ctk.CTkEntry(deploy_card, textvariable=self.ent_ability_delay_var, width=60, height=24, justify="center")
-        self.ent_ability_delay.grid(row=2, column=1, padx=(4, 10), pady=2, sticky="e")
-        self.ent_ability_delay.bind("<FocusOut>", lambda e: self._on_deployment_settings_change())
-        self.ent_ability_delay.bind("<Return>", lambda e: self._on_deployment_settings_change())
-
-        # Summary label
-        self.lbl_deploy_summary = ctk.CTkLabel(
-            deploy_card,
-            text="",
-            font=ctk.CTkFont(size=10),
-            text_color="#a1a1aa"
-        )
-        self.lbl_deploy_summary.grid(row=3, column=0, columnspan=2, padx=10, pady=(2, 6), sticky="w")
-        self._on_deployment_settings_change()
 
         # =============================================================
         # 2. BUILDER BASE CONTROLS CONTAINER
@@ -1156,31 +1110,23 @@ class DashboardApp(ctk.CTk):
             self._add_troop_slot(unit_name="Super Wall Breaker", qty=4, prio_idx=1, enabled=True)
 
         # -------------------------------------------------------------
-        # 2. SIEGE MACHINE (SLOT BETWEEN TROOPS & HEROES)
+        # 2. SIEGE MACHINE (HORIZONTAL QUICK SELECTOR & DEPLOYMENT SLOT)
         # -------------------------------------------------------------
         card_siege = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
         card_siege.grid(row=3, column=0, padx=6, pady=(0, 8), sticky="ew")
-        card_siege.grid_columnconfigure(2, weight=1)
+        card_siege.grid_columnconfigure(0, weight=1)
+
+        s_hdr_frame = ctk.CTkFrame(card_siege, fg_color="transparent")
+        s_hdr_frame.grid(row=0, column=0, padx=10, pady=(8, 4), sticky="ew")
+        s_hdr_frame.grid_columnconfigure(0, weight=1)
 
         lbl_s_hdr = ctk.CTkLabel(
-            card_siege,
+            s_hdr_frame,
             text=safe_text("🛡️ Siege Machine (Deployment Slot):"),
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#38bdf8"
         )
-        lbl_s_hdr.grid(row=0, column=0, columnspan=4, padx=10, pady=(8, 4), sticky="w")
-
-        self.chk_siege_var = ctk.BooleanVar(value=getattr(self.config.deployment, "deploy_siege", True))
-        chk_siege = ctk.CTkCheckBox(
-            card_siege,
-            text="Deploy Siege Machine (single tap drop, never spammed as troop or triggered as hero ability)",
-            variable=self.chk_siege_var,
-            font=ctk.CTkFont(size=11)
-        )
-        chk_siege.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 6), sticky="w")
-
-        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=40, height=50)
-        self.lbl_siege_icon.grid(row=2, column=0, padx=(10, 6), pady=(0, 8))
+        lbl_s_hdr.pack(side="left")
 
         curr_siege_name = "Siege Barracks"
         cfg_sieges = getattr(self.config.deployment.army, "siege", [])
@@ -1192,15 +1138,77 @@ class DashboardApp(ctk.CTk):
                     break
 
         self.siege_unit_var = ctk.StringVar(value=curr_siege_name)
-        opt_siege = ctk.CTkOptionMenu(
-            card_siege,
-            variable=self.siege_unit_var,
-            values=SIEGE_OPTIONS,
-            width=180,
-            height=26,
-            command=lambda v: self._update_siege_icon_preview()
+
+        self.lbl_active_siege_badge = ctk.CTkLabel(
+            s_hdr_frame,
+            text=f"Active: {curr_siege_name}",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color="#38bdf8",
+            fg_color="#1e293b",
+            corner_radius=6,
+            padx=8,
+            pady=2
         )
-        opt_siege.grid(row=2, column=1, padx=6, pady=(0, 8), sticky="w")
+        self.lbl_active_siege_badge.pack(side="right")
+
+        self.chk_siege_var = ctk.BooleanVar(value=getattr(self.config.deployment, "deploy_siege", True))
+        chk_siege = ctk.CTkCheckBox(
+            card_siege,
+            text="Deploy Siege Machine in Attack (single tap drop, never spammed as troop or triggered as hero ability)",
+            variable=self.chk_siege_var,
+            font=ctk.CTkFont(size=11)
+        )
+        chk_siege.grid(row=1, column=0, padx=10, pady=(0, 4), sticky="w")
+
+        lbl_siege_ribbon_hdr = ctk.CTkLabel(
+            card_siege,
+            text=safe_text("🎠 Select Siege Machine (Click card to equip):"),
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color="#94a3b8"
+        )
+        lbl_siege_ribbon_hdr.grid(row=2, column=0, padx=10, pady=(2, 0), sticky="w")
+
+        # Horizontal Scrollable Ribbon for All 9 Siege Machines
+        self.siege_carousel = ctk.CTkScrollableFrame(
+            card_siege,
+            orientation="horizontal",
+            height=95,
+            fg_color="#18181b",
+            corner_radius=8,
+            scrollbar_button_color="#3f3f46",
+            scrollbar_button_hover_color="#52525b"
+        )
+        self.siege_carousel.grid(row=3, column=0, padx=8, pady=(2, 8), sticky="ew")
+
+        self.siege_carousel_buttons = {}
+        for opt_siege in SIEGE_OPTIONS:
+            s_icon_path = UNIT_ASSET_MAP.get(opt_siege)
+            s_img = self._load_ctk_image(s_icon_path, size=(38, 46)) if s_icon_path else None
+
+            disp_short = opt_siege
+            if len(disp_short) > 13:
+                disp_short = disp_short.replace("Launcher", "Launch.").replace("Barracks", "Barr.")
+
+            is_active = (opt_siege == curr_siege_name)
+            btn_s = ctk.CTkButton(
+                self.siege_carousel,
+                text=disp_short,
+                image=s_img,
+                compound="top",
+                width=68,
+                height=84,
+                fg_color="#1e293b" if is_active else "#222226",
+                hover_color="#0284c7",
+                border_color="#0284c7" if is_active else "#27272a",
+                border_width=2 if is_active else 0,
+                text_color="#38bdf8" if is_active else "#e2e8f0",
+                font=ctk.CTkFont(size=9, weight="bold"),
+                command=lambda s=opt_siege: self._on_siege_card_clicked(s)
+            )
+            btn_s.pack(side="left", padx=3, pady=2)
+            self.siege_carousel_buttons[opt_siege] = btn_s
+
+        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=1, height=1)
         self._update_siege_icon_preview()
 
         # -------------------------------------------------------------
@@ -1291,7 +1299,7 @@ class DashboardApp(ctk.CTk):
         lbl_del_hint.pack(side="left")
 
         # -------------------------------------------------------------
-        # 4. SPELLS (DYNAMIC SPELL ARSENAL)
+        # 4. SPELLS (DYNAMIC SPELL ARSENAL WITH HORIZONTAL QUICK SELECT)
         # -------------------------------------------------------------
         card_spells = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
         card_spells.grid(row=5, column=0, padx=6, pady=(0, 8), sticky="ew")
@@ -1325,8 +1333,50 @@ class DashboardApp(ctk.CTk):
         chk_sp = ctk.CTkCheckBox(card_spells, text="Deploy Spells in Attack", variable=self.chk_spells_var, font=ctk.CTkFont(size=11))
         chk_sp.grid(row=1, column=0, padx=10, pady=(0, 4), sticky="w")
 
+        # Horizontal Quick Select Ribbon for All 17 Spells
+        lbl_spell_ribbon_hdr = ctk.CTkLabel(
+            card_spells,
+            text=safe_text("🎠 Quick Select Spell Ribbon (Click card to add or assign slot):"),
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color="#94a3b8"
+        )
+        lbl_spell_ribbon_hdr.grid(row=2, column=0, padx=10, pady=(2, 0), sticky="w")
+
+        self.spell_carousel = ctk.CTkScrollableFrame(
+            card_spells,
+            orientation="horizontal",
+            height=95,
+            fg_color="#18181b",
+            corner_radius=8,
+            scrollbar_button_color="#3f3f46",
+            scrollbar_button_hover_color="#52525b"
+        )
+        self.spell_carousel.grid(row=3, column=0, padx=8, pady=(2, 6), sticky="ew")
+
+        # Populate carousel with all 17 spells
+        for opt_sp in SPELL_OPTIONS:
+            sp_icon_path = UNIT_ASSET_MAP.get(opt_sp)
+            sp_img = self._load_ctk_image(sp_icon_path, size=(42, 44)) if sp_icon_path else None
+
+            disp_short = opt_sp.replace(" Spell", "")
+
+            btn_s = ctk.CTkButton(
+                self.spell_carousel,
+                text=disp_short,
+                image=sp_img,
+                compound="top",
+                width=62,
+                height=84,
+                fg_color="#222226",
+                hover_color="#a855f7",
+                text_color="#e2e8f0",
+                font=ctk.CTkFont(size=9, weight="bold"),
+                command=lambda s=opt_sp: self._on_carousel_spell_clicked(s)
+            )
+            btn_s.pack(side="left", padx=2, pady=2)
+
         self.spell_rows_frame = ctk.CTkFrame(card_spells, fg_color="transparent")
-        self.spell_rows_frame.grid(row=2, column=0, padx=6, pady=(0, 6), sticky="ew")
+        self.spell_rows_frame.grid(row=4, column=0, padx=6, pady=(0, 6), sticky="ew")
         self.spell_rows_frame.grid_columnconfigure(0, weight=1)
 
         self.spell_slot_rows = []
@@ -1358,13 +1408,63 @@ class DashboardApp(ctk.CTk):
         btn_save.grid(row=6, column=0, padx=6, pady=(4, 12), sticky="ew")
 
     # -----------------------------------------------------------------
-    # DYNAMIC TROOP & SPELL MANAGEMENT
+    # DYNAMIC TROOP, SIEGE & SPELL MANAGEMENT
     # -----------------------------------------------------------------
     def _on_carousel_troop_clicked(self, troop_name: str) -> None:
         """Triggered when clicking a troop card in the horizontal ribbon."""
-        # Check if an existing slot matches or if we should add a new slot
+        for row in self.troop_slot_rows:
+            if row["unit_var"].get().lower().replace(" ", "") == troop_name.lower().replace(" ", ""):
+                try:
+                    curr = int(row["qty_var"].get())
+                except ValueError:
+                    curr = 0
+                new_q = curr + 5
+                row["qty_var"].set(str(new_q))
+                row["en_var"].set(True)
+                if "slider_q" in row:
+                    row["slider_q"].set(min(100, new_q))
+                self.log_event(f"Incremented troop quantity: {troop_name} (+5 -> {new_q})")
+                return
         self._add_troop_slot(unit_name=troop_name, qty=15, enabled=True)
         self.log_event(f"Added troop slot from ribbon: {troop_name} (x15)")
+
+    def _on_siege_card_clicked(self, siege_name: str) -> None:
+        """Triggered when clicking a siege machine card in the horizontal ribbon."""
+        self.siege_unit_var.set(siege_name)
+        self._update_siege_icon_preview()
+        self._update_siege_carousel_highlight()
+        self.log_event(f"Equipped siege machine: {siege_name}")
+
+    def _update_siege_carousel_highlight(self) -> None:
+        if not hasattr(self, "siege_unit_var"):
+            return
+        current = self.siege_unit_var.get()
+        if hasattr(self, "lbl_active_siege_badge"):
+            self.lbl_active_siege_badge.configure(text=f"Active: {current}")
+        for s_name, btn in getattr(self, "siege_carousel_buttons", {}).items():
+            if s_name == current:
+                btn.configure(fg_color="#1e293b", border_color="#0284c7", border_width=2, text_color="#38bdf8")
+            else:
+                btn.configure(fg_color="#222226", border_color="#27272a", border_width=0, text_color="#e2e8f0")
+
+    def _on_carousel_spell_clicked(self, spell_name: str) -> None:
+        """Triggered when clicking a spell card in the horizontal ribbon."""
+        for row in self.spell_slot_rows:
+            if row["unit_var"].get().lower().replace(" ", "") == spell_name.lower().replace(" ", ""):
+                try:
+                    curr = int(row["qty_var"].get())
+                except ValueError:
+                    curr = 0
+                new_q = min(12, curr + 1)
+                row["qty_var"].set(str(new_q))
+                if "slider_q" in row:
+                    row["slider_q"].set(new_q)
+                row["en_var"].set(True)
+                self.log_event(f"Incremented spell quantity: {spell_name} (x{new_q})")
+                return
+        default_qty = 11 if "totem" in spell_name.lower() else 1
+        self._add_spell_slot(spell_name=spell_name, qty=default_qty, enabled=True)
+        self.log_event(f"Added spell slot from ribbon: {spell_name} (x{default_qty})")
 
     def _add_troop_slot(self, unit_name: str = "Valkyrie", qty: int = 20, prio_idx: Optional[int] = None, enabled: bool = True) -> None:
         idx = len(self.troop_slot_rows)
@@ -1704,6 +1804,7 @@ class DashboardApp(ctk.CTk):
             rel_path = UNIT_ASSET_MAP.get(unit_name)
             img = self._load_ctk_image(rel_path, size=(40, 50)) if rel_path else None
             self.lbl_siege_icon.configure(image=img)
+        self._update_siege_carousel_highlight()
 
     def _on_hero_toggled(self, h_key: str) -> None:
         """Enforces max 4 active heroes with FIFO auto-deselection rule."""
