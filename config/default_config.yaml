@@ -12,10 +12,10 @@ window:
 target:
   expression: gold >= 1000000 OR gold + elixir >= 1500000
   match_mode: OR
-  watch_gold: true
+  watch_gold: false
   min_gold: 1200000
   watch_elixir: true
-  min_elixir: 1200000
+  min_elixir: 600000
   watch_dark_elixir: false
   min_dark_elixir: 12000
   watch_combined: false
@@ -49,7 +49,7 @@ deployment:
     - name: grand_warden
     - name: minion_prince
     clan_castle: false
-  hero_count: -1
+  hero_count: 4
   hero_ability_delay_seconds: 6.0
   deploy_siege: true
   deploy_spells: true

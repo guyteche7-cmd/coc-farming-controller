@@ -47,16 +47,34 @@
     - 8 Classes: `town_hall`, `gold_storage`, `elixir_storage`, `dark_elixir_storage`, `gold_mine`, `elixir_collector`, `dark_elixir_drill`, `wall`.
     - Real-time inference: ~7–9ms on RTX 4050 via ONNXRuntime / TensorRT.
 - **Zoom & Map Visibility**:
-  - LDPlayer pinch-to-zoom out (`Ctrl + Scroll Down` or ADB two-finger pinch) at battle start to reveal the entire base and 4 corner compartments.
+  - In-game setting: User reduces "Deploy Bar Size" in Clash of Clans Settings $\to$ More Settings.
+  - Battle-Start Choreography:
+    1. Automated pinch-out gesture (`Ctrl + Scroll Down` or dual touch) for 0.4s to reset zoom.
+    2. Subtle vertical micro-pan (mouse drag `y=0.45` to `0.55`) to center the base diamond and bring both top and bottom corner compartments into full view.
 
 ---
 
-## 5. Deployment Strategies
+## 5. Deployment Strategies & Meta Evolution
+- **Deterministic Ribbon Mapping**:
+  - User defines army structure: $N_{\text{troops}}$ troop types, 1 siege machine, $N_{\text{heroes}}$ heroes, $N_{\text{spells}}$ spells.
+  - Slots `0..(N-1)`: Strictly troops. Icon matched to identify exact unit type (Valkyrie, Wall Breaker, Healer, Barbarian/Archer Squad).
+  - Slot `N`: Strictly Siege Machine. Tapped once to deploy, never for ability.
+  - Slots `N+1..N+H`: Strictly Heroes.
+  - Trailing slots: Strictly Spells.
+  - Bot deploys in user-configured sequence (e.g. Valkyrie first, Healer second, Wall Breaker third), completely ignoring Supercell's ribbon sorting!
 - **Mode 1: Single-Point Probe & Funnel** (Historical, default for Sneaky Goblins).
-- **Mode 2: 4-Side Perimeter Deployment** (Valkyries, Barbarian/Archer Squads spread evenly across the 4 diamond edges).
+- **Mode 2: 4-Side Diamond Perimeter Deployment** (Valkyries, Barbarian/Archer Squads spread evenly across the 4 diamond edges).
 - **Mode 3: Core Breach Funnel** (Wall breakers crack outer compartment nearest high-value storage/Town Hall $\to$ Heroes funnel into core $\to$ Equipment abilities fired $\to$ Spells saturate core).
+- **Mode 4: Active Attack Engine (Future Milestone)**: Real-time visual feedback loop monitoring destroyed buildings and adjusting unit waves on the fly.
 
 ---
 
 ## 6. Multi-Agent Validation Protocol
 - Antigravity can validate complex code, plans, and game logic using built-in **subagents** (`invoke_subagent`), **swarms** (`swarm` board collaboration), or external LLMs (via Gemini API plugin).
+
+---
+
+## 7. Dataset Collection & Auto-Labeling Pipeline
+- **Auto-Collector**: Captures full-resolution battle and village frames every 5s into `dataset/raw_frames/`.
+- **Pre-Labeling Engine**: Local Florence-2 / template matching script generates standard YOLO `.txt` bounding boxes.
+- **Offline Review Option**: LabelImg / AnyLabeling runs 100% locally on Windows without cloud accounts. Optional Roboflow/CVAT export.
