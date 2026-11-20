@@ -113,7 +113,7 @@ UNIT_ASSET_MAP = {
     "Super Archer": "assets/army/cards/troops/super_archer_card.png",
     "Super Giant": "assets/army/cards/troops/super_giant_card.png",
     "Sneaky Goblin": "assets/army/cards/troops/sneaky_goblin_card.png",
-    "Super Wall Breaker": "assets/army/cards/troops/wall_breaker_card.png",
+    "Super Wall Breaker": "assets/army/cards/troops/super_wall_breaker_card.png",
     "Rocket Balloon": "assets/army/cards/troops/rocket_balloon_card.png",
     "Super Wizard": "assets/army/cards/troops/super_wizard_card.png",
     "Super Dragon": "assets/army/cards/troops/super_dragon_card.png",
@@ -124,14 +124,10 @@ UNIT_ASSET_MAP = {
     "Ice Hound": "assets/army/cards/troops/ice_hound_card.png",
     "Super Bowler": "assets/army/cards/troops/bowler_card.png",
     "Super Miner": "assets/army/cards/troops/super_miner_card.png",
-    "Super Hog Rider": "assets/army/cards/troops/hog_rider_card.png",
+    "Super Hog Rider": "assets/army/cards/troops/super_hog_rider_card.png",
     "Super Yeti": "assets/army/cards/troops/super_yeti_card.png",
 
-    # 4. Squad Barracks
-    "Barbarian Squad": "assets/army/cards/troops/super_barbarian_card.png",
-    "Archer Squad": "assets/army/cards/troops/super_archer_card.png",
-
-    # 5. Siege Machines (Crisp, clean, verified)
+    # 4. Siege Machines (Crisp, clean, verified)
     "Siege Barracks": "assets/siege/siege_barracks.png",
     "Battle Blimp": "assets/siege/battle_blimp.png",
     "Log Launcher": "assets/siege/log_launcher.png",
@@ -139,9 +135,10 @@ UNIT_ASSET_MAP = {
     "Wall Wrecker": "assets/siege/wall_wrecker.png",
     "Stone Slammer": "assets/siege/stone_slammer.png",
     "Battle Drill": "assets/siege/battle_drill.png",
-    "Siege Balloon": "assets/siege/siege_balloon.png",
+    "Troop Launcher": "assets/siege/troop_launcher.png",
+    "Sky Wagon": "assets/siege/sky_wagon.png",
 
-    # 6. Heroes (TH17 Complete 6 Hero Roster)
+    # 5. Heroes (TH17 Complete 6 Hero Roster)
     "Barbarian King": "assets/heroes/barbarian_king.png",
     "Archer Queen": "assets/heroes/archer_queen.png",
     "Grand Warden": "assets/heroes/grand_warden.png",
@@ -149,26 +146,33 @@ UNIT_ASSET_MAP = {
     "Minion Prince": "assets/heroes/minion_prince.png",
     "Dragon Duke": "assets/heroes/dragon_duke.png",
 
-    # 7. Spells (Crisp, clean, verified)
-    "Earthquake": "assets/spells/earthquake.png",
+    # 6. Spells (Crisp, clean, verified)
+    "Totem Spell": "assets/spells/totem.png",
+    "Totem": "assets/spells/totem.png",
     "Lightning": "assets/spells/lightning.png",
     "Rage": "assets/spells/rage.png",
     "Freeze": "assets/spells/freeze.png",
     "Jump": "assets/spells/jump.png",
-    "Poison": "assets/spells/poison.png",
-    "Haste": "assets/spells/haste.png",
     "Healing": "assets/spells/healing.png",
-    "Skeleton": "assets/spells/skeleton.png",
+    "Heal Spell": "assets/spells/healing.png",
     "Invisibility": "assets/spells/invisibility.png",
-    "Bat": "assets/spells/bat.png",
-    "Bat Spell": "assets/spells/bat.png",
+    "Invisibility Spell": "assets/spells/invisibility.png",
+    "Revive Spell": "assets/spells/revive.png",
+    "Revive": "assets/spells/revive.png",
     "Clone": "assets/spells/clone.png",
     "Clone Spell": "assets/spells/clone.png",
-    "Overgrowth": "assets/spells/overgrowth.png",
     "Recall": "assets/spells/recall.png",
     "Recall Spell": "assets/spells/recall.png",
-    "Revive Spell": "assets/spells/healing.png",
-    "Heroic Spell": "assets/spells/rage.png",
+    "Poison": "assets/spells/poison.png",
+    "Haste": "assets/spells/haste.png",
+    "Bat": "assets/spells/bat.png",
+    "Bat Spell": "assets/spells/bat.png",
+    "Ice Block": "assets/spells/ice_block.png",
+    "Ice Block Spell": "assets/spells/ice_block.png",
+    "Earthquake": "assets/spells/earthquake.png",
+    "Earthquake Spell": "assets/spells/earthquake.png",
+    "Skeleton": "assets/spells/skeleton.png",
+    "Overgrowth": "assets/spells/overgrowth.png",
 }
 
 TROOP_OPTIONS = [
@@ -187,21 +191,18 @@ TROOP_OPTIONS = [
     "Super Barbarian", "Super Archer", "Super Giant", "Sneaky Goblin", "Super Wall Breaker",
     "Rocket Balloon", "Super Wizard", "Super Dragon", "Inferno Dragon", "Super Minion",
     "Super Valkyrie", "Super Witch", "Ice Hound", "Super Bowler", "Super Miner",
-    "Super Hog Rider", "Super Yeti",
-
-    # Squads
-    "Barbarian Squad", "Archer Squad"
+    "Super Hog Rider", "Super Yeti"
 ]
 
 SIEGE_OPTIONS = [
     "Siege Barracks", "Battle Blimp", "Log Launcher", "Flame Flinger",
-    "Wall Wrecker", "Stone Slammer", "Battle Drill", "Siege Balloon"
+    "Wall Wrecker", "Stone Slammer", "Battle Drill", "Troop Launcher", "Sky Wagon"
 ]
 
 SPELL_OPTIONS = [
-    "Earthquake", "Lightning", "Rage", "Freeze", "Jump",
-    "Poison", "Haste", "Healing", "Skeleton", "Invisibility",
-    "Bat", "Clone", "Overgrowth", "Recall", "Heroic Spell"
+    "Totem Spell", "Lightning", "Healing", "Rage", "Freeze", "Jump",
+    "Invisibility", "Revive Spell", "Clone", "Recall", "Poison", "Haste",
+    "Bat", "Ice Block", "Earthquake", "Skeleton", "Overgrowth"
 ]
 
 PRIORITY_OPTIONS = [
@@ -1334,11 +1335,13 @@ class DashboardApp(ctk.CTk):
         if cfg_spells:
             for s_idx, cfg_sp in enumerate(cfg_spells):
                 sp_en = getattr(cfg_sp, "enabled", True)
-                sp_name_raw = getattr(cfg_sp, "name", "earthquake").replace("_", " ").title()
+                sp_name_raw = getattr(cfg_sp, "name", "totem_spell").replace("_", " ").title()
+                if sp_name_raw.lower() in ("totem", "totem spell"):
+                    sp_name_raw = "Totem Spell"
                 sp_qty = int(getattr(cfg_sp, "expected_quantity", 11))
                 self._add_spell_slot(spell_name=sp_name_raw, qty=sp_qty, enabled=sp_en)
         else:
-            self._add_spell_slot(spell_name="Earthquake", qty=11, enabled=True)
+            self._add_spell_slot(spell_name="Totem Spell", qty=11, enabled=True)
 
         # -------------------------------------------------------------
         # 5. SAVE & APPLY BUTTON
@@ -1563,7 +1566,7 @@ class DashboardApp(ctk.CTk):
         )
         chk_sp.grid(row=0, column=0, padx=(6, 2), pady=3, sticky="w")
 
-        lbl_ico = ctk.CTkLabel(row_frame, text="", width=36, height=48)
+        lbl_ico = ctk.CTkLabel(row_frame, text="", width=46, height=48)
         lbl_ico.grid(row=0, column=1, padx=3, pady=3)
 
         row_data = {
@@ -1688,7 +1691,7 @@ class DashboardApp(ctk.CTk):
     def _update_spell_row_icon(self, row_data: dict) -> None:
         spell_name = row_data["unit_var"].get()
         rel_path = UNIT_ASSET_MAP.get(spell_name)
-        img = self._load_ctk_image(rel_path, size=(36, 48)) if rel_path else None
+        img = self._load_ctk_image(rel_path, size=(46, 48)) if rel_path else None
         row_data["lbl_ico"].configure(image=img)
 
     def _update_spell_icon_preview(self, idx: int = 0) -> None:

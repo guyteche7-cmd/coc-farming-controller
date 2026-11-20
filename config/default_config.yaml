@@ -44,7 +44,7 @@ deployment:
       enabled: true
       pattern: line_distribute
     spells:
-    - name: earthquake
+    - name: totem_spell
       expected_quantity: 11
       enabled: true
       pattern: randomized_targets
