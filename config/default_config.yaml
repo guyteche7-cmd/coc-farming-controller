@@ -43,27 +43,9 @@ deployment:
       priority: 2
       enabled: true
       pattern: line_distribute
-    - name: healer
-      expected_quantity: 5
-      priority: 4
-      enabled: true
-      pattern: line_distribute
-    - name: healer
-      expected_quantity: 5
-      priority: 4
-      enabled: true
-      pattern: line_distribute
     spells:
     - name: earthquake
       expected_quantity: 11
-      enabled: true
-      pattern: randomized_targets
-    - name: freeze
-      expected_quantity: 3
-      enabled: true
-      pattern: randomized_targets
-    - name: freeze
-      expected_quantity: 3
       enabled: true
       pattern: randomized_targets
     siege:
@@ -80,11 +62,11 @@ deployment:
     - name: royal_champion
       enabled: true
     - name: minion_prince
-      enabled: true
+      enabled: false
     - name: dragon_duke
-      enabled: true
+      enabled: false
     clan_castle: false
-  hero_count: 6
+  hero_count: 4
   hero_ability_delay_seconds: 6.0
   deploy_siege: true
   deploy_spells: true

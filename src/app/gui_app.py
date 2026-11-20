@@ -131,7 +131,7 @@ UNIT_ASSET_MAP = {
     "Barbarian Squad": "assets/army/cards/troops/super_barbarian_card.png",
     "Archer Squad": "assets/army/cards/troops/super_archer_card.png",
 
-    # 5. Siege Machines
+    # 5. Siege Machines (Crisp, clean, verified)
     "Siege Barracks": "assets/siege/siege_barracks.png",
     "Battle Blimp": "assets/siege/battle_blimp.png",
     "Log Launcher": "assets/siege/log_launcher.png",
@@ -149,7 +149,7 @@ UNIT_ASSET_MAP = {
     "Minion Prince": "assets/heroes/minion_prince.png",
     "Dragon Duke": "assets/heroes/dragon_duke.png",
 
-    # 7. Spells
+    # 7. Spells (Crisp, clean, verified)
     "Earthquake": "assets/spells/earthquake.png",
     "Lightning": "assets/spells/lightning.png",
     "Rage": "assets/spells/rage.png",
@@ -159,12 +159,15 @@ UNIT_ASSET_MAP = {
     "Haste": "assets/spells/haste.png",
     "Healing": "assets/spells/healing.png",
     "Skeleton": "assets/spells/skeleton.png",
-    "Invisibility": "assets/army/cards/spells/invisibility_spell_card.png",
-    "Bat Spell": "assets/army/cards/spells/bat_spell_card.png",
-    "Clone Spell": "assets/army/cards/spells/clone_spell_card.png",
-    "Overgrowth": "assets/army/cards/spells/overgrowth_spell_card.png",
-    "Recall Spell": "assets/army/cards/spells/recall_spell_card.png",
-    "Revive Spell": "assets/army/cards/spells/revive_spell_card.png",
+    "Invisibility": "assets/spells/invisibility.png",
+    "Bat": "assets/spells/bat.png",
+    "Bat Spell": "assets/spells/bat.png",
+    "Clone": "assets/spells/clone.png",
+    "Clone Spell": "assets/spells/clone.png",
+    "Overgrowth": "assets/spells/overgrowth.png",
+    "Recall": "assets/spells/recall.png",
+    "Recall Spell": "assets/spells/recall.png",
+    "Revive Spell": "assets/spells/healing.png",
     "Heroic Spell": "assets/spells/rage.png",
 }
 
@@ -198,7 +201,7 @@ SIEGE_OPTIONS = [
 SPELL_OPTIONS = [
     "Earthquake", "Lightning", "Rage", "Freeze", "Jump",
     "Poison", "Haste", "Healing", "Skeleton", "Invisibility",
-    "Bat Spell", "Clone Spell", "Overgrowth", "Recall Spell", "Revive Spell", "Heroic Spell"
+    "Bat", "Clone", "Overgrowth", "Recall", "Heroic Spell"
 ]
 
 PRIORITY_OPTIONS = [
@@ -933,7 +936,8 @@ class DashboardApp(ctk.CTk):
         self.main_tabview = ctk.CTkTabview(main_frame, corner_radius=10, fg_color="#18181b")
         self.main_tabview.grid(row=1, column=0, sticky="nsew", padx=6, pady=(0, 4))
         self.main_tabview.grid_columnconfigure(0, weight=1)
-        self.main_tabview.grid_rowconfigure(0, weight=1)
+        self.main_tabview.grid_rowconfigure(0, weight=0)
+        self.main_tabview.grid_rowconfigure(3, weight=1)
 
         tab_live_name = safe_text("📊 Telemetry & Live Feed")
         tab_army_name = safe_text("⚔️ Army Setup & Sequencer")
@@ -1056,7 +1060,7 @@ class DashboardApp(ctk.CTk):
         lbl_desc.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="w")
 
         # -------------------------------------------------------------
-        # 1. DYNAMIC TROOPS SQUAD & DROP SEQUENCE PRIORITY
+        # 1. DYNAMIC TROOPS SQUAD & HORIZONTAL SELECTOR RIBBON
         # -------------------------------------------------------------
         card_troops = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
         card_troops.grid(row=2, column=0, padx=6, pady=(0, 8), sticky="ew")
@@ -1086,8 +1090,53 @@ class DashboardApp(ctk.CTk):
         )
         btn_add_troop.pack(side="right")
 
+        # Horizontal Quick Select Ribbon for All 52 Troops
+        lbl_ribbon_hdr = ctk.CTkLabel(
+            card_troops,
+            text=safe_text("🎠 Quick Select Troop Ribbon (Click card to add or assign slot):"),
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color="#94a3b8"
+        )
+        lbl_ribbon_hdr.grid(row=1, column=0, padx=10, pady=(2, 0), sticky="w")
+
+        self.troop_carousel = ctk.CTkScrollableFrame(
+            card_troops,
+            orientation="horizontal",
+            height=92,
+            fg_color="#18181b",
+            corner_radius=8,
+            scrollbar_button_color="#3f3f46",
+            scrollbar_button_hover_color="#52525b"
+        )
+        self.troop_carousel.grid(row=2, column=0, padx=8, pady=(2, 6), sticky="ew")
+
+        # Populate carousel with all 52 troop cards
+        for opt_troop in TROOP_OPTIONS:
+            t_icon_path = UNIT_ASSET_MAP.get(opt_troop)
+            t_img = self._load_ctk_image(t_icon_path, size=(32, 42)) if t_icon_path else None
+
+            # Compact button text
+            disp_short = opt_troop
+            if len(disp_short) > 11:
+                disp_short = disp_short.replace("Super ", "S.").replace("Electro ", "E-").replace("Apprentice ", "App.")
+
+            btn_c = ctk.CTkButton(
+                self.troop_carousel,
+                text=disp_short,
+                image=t_img,
+                compound="top",
+                width=56,
+                height=80,
+                fg_color="#222226",
+                hover_color="#0284c7",
+                text_color="#e2e8f0",
+                font=ctk.CTkFont(size=9, weight="bold"),
+                command=lambda u=opt_troop: self._on_carousel_troop_clicked(u)
+            )
+            btn_c.pack(side="left", padx=2, pady=2)
+
         self.troop_rows_frame = ctk.CTkFrame(card_troops, fg_color="transparent")
-        self.troop_rows_frame.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="ew")
+        self.troop_rows_frame.grid(row=3, column=0, padx=6, pady=(0, 6), sticky="ew")
         self.troop_rows_frame.grid_columnconfigure(0, weight=1)
 
         self.troop_slot_rows = []
@@ -1129,7 +1178,7 @@ class DashboardApp(ctk.CTk):
         )
         chk_siege.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 6), sticky="w")
 
-        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=40, height=52)
+        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=40, height=50)
         self.lbl_siege_icon.grid(row=2, column=0, padx=(10, 6), pady=(0, 8))
 
         curr_siege_name = "Siege Barracks"
@@ -1154,22 +1203,25 @@ class DashboardApp(ctk.CTk):
         self._update_siege_icon_preview()
 
         # -------------------------------------------------------------
-        # 3. HEROES (TH17 COMPLETE 6 HERO ROSTER)
+        # 3. HEROES (TH17 COMPLETE 6 HERO ROSTER, MAX 4 ACTIVE)
         # -------------------------------------------------------------
         card_heroes = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
         card_heroes.grid(row=4, column=0, padx=6, pady=(0, 8), sticky="ew")
         for c_i in range(6):
             card_heroes.grid_columnconfigure(c_i, weight=1)
 
-        lbl_h_hdr = ctk.CTkLabel(
+        self.lbl_h_hdr = ctk.CTkLabel(
             card_heroes,
-            text=safe_text("👑 Active Heroes (Town Hall 17 Hero Roster - 6 Heroes):"),
+            text=safe_text("👑 Active Heroes (Select up to 4 Heroes for Battle — Max 4 Allowed):"),
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#f43f5e"
         )
-        lbl_h_hdr.grid(row=0, column=0, columnspan=6, padx=10, pady=(8, 4), sticky="w")
+        self.lbl_h_hdr.grid(row=0, column=0, columnspan=6, padx=10, pady=(8, 4), sticky="w")
 
         self.hero_vars = {}
+        self.hero_frames = {}
+        self._selected_heroes_order = []
+
         hero_defs = [
             ("barbarian_king", "Barbarian King", "assets/heroes/barbarian_king.png"),
             ("archer_queen", "Archer Queen", "assets/heroes/archer_queen.png"),
@@ -1188,26 +1240,40 @@ class DashboardApp(ctk.CTk):
                 cfg_hero_active_map[h_name] = h_en
 
         for idx, (h_key, h_display, h_icon_path) in enumerate(hero_defs):
-            h_frame = ctk.CTkFrame(card_heroes, fg_color="#18181b", corner_radius=8)
+            h_frame = ctk.CTkFrame(card_heroes, fg_color="#18181b", corner_radius=8, border_width=1, border_color="#27272a")
             h_frame.grid(row=1, column=idx, padx=3, pady=(0, 6), sticky="ew")
             h_frame.grid_columnconfigure(0, weight=1)
+            self.hero_frames[h_key] = h_frame
 
             # Rectangular attack ribbon card icon: 42x56
             h_img = self._load_ctk_image(h_icon_path, size=(42, 56))
             lbl_h_ico = ctk.CTkLabel(h_frame, text="", image=h_img)
             lbl_h_ico.grid(row=0, column=0, pady=(4, 2))
 
-            is_active = cfg_hero_active_map.get(h_key, True)
-            h_var = ctk.BooleanVar(value=is_active)
+            # Enforce max 4 active heroes on initial load
+            is_active = cfg_hero_active_map.get(h_key, (idx < 4))
+            if is_active and len(self._selected_heroes_order) < 4:
+                self._selected_heroes_order.append(h_key)
+                init_val = True
+            else:
+                init_val = False
+
+            h_var = ctk.BooleanVar(value=init_val)
             self.hero_vars[h_key] = h_var
 
             chk_h = ctk.CTkCheckBox(
                 h_frame,
                 text=h_display,
                 variable=h_var,
-                font=ctk.CTkFont(size=10, weight="bold")
+                font=ctk.CTkFont(size=10, weight="bold"),
+                command=lambda k=h_key: self._on_hero_toggled(k)
             )
             chk_h.grid(row=1, column=0, padx=2, pady=(0, 6))
+
+            # Apply initial visual card styling
+            self._update_hero_card_style(h_key, init_val)
+
+        self._update_hero_header_text()
 
         # Hero Ability Delay
         delay_row = ctk.CTkFrame(card_heroes, fg_color="transparent")
@@ -1291,11 +1357,18 @@ class DashboardApp(ctk.CTk):
     # -----------------------------------------------------------------
     # DYNAMIC TROOP & SPELL MANAGEMENT
     # -----------------------------------------------------------------
+    def _on_carousel_troop_clicked(self, troop_name: str) -> None:
+        """Triggered when clicking a troop card in the horizontal ribbon."""
+        # Check if an existing slot matches or if we should add a new slot
+        self._add_troop_slot(unit_name=troop_name, qty=15, enabled=True)
+        self.log_event(f"Added troop slot from ribbon: {troop_name} (x15)")
+
     def _add_troop_slot(self, unit_name: str = "Valkyrie", qty: int = 20, prio_idx: Optional[int] = None, enabled: bool = True) -> None:
         idx = len(self.troop_slot_rows)
         row_frame = ctk.CTkFrame(self.troop_rows_frame, fg_color="#18181b", corner_radius=6)
         row_frame.pack(fill="x", padx=2, pady=2)
-        row_frame.grid_columnconfigure(2, weight=1)
+        row_frame.grid_columnconfigure(2, weight=0)
+        row_frame.grid_columnconfigure(7, weight=1)
 
         en_var = ctk.BooleanVar(value=enabled)
         matched_unit = unit_name
@@ -1343,18 +1416,59 @@ class DashboardApp(ctk.CTk):
         opt_t.grid(row=0, column=2, padx=3, pady=3, sticky="w")
 
         lbl_q = ctk.CTkLabel(row_frame, text="Qty:", font=ctk.CTkFont(size=11))
-        lbl_q.grid(row=0, column=3, padx=(3, 2), pady=3, sticky="e")
-        ent_q = ctk.CTkEntry(row_frame, textvariable=qty_var, width=44, height=26, justify="center")
-        ent_q.grid(row=0, column=4, padx=(2, 4), pady=3)
+        lbl_q.grid(row=0, column=3, padx=(4, 2), pady=3, sticky="e")
+
+        # Stepper [-]
+        btn_minus = ctk.CTkButton(
+            row_frame,
+            text="-",
+            width=22,
+            height=24,
+            fg_color="#27272a",
+            hover_color="#3f3f46",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda r=row_data: self._step_troop_qty(r, -1)
+        )
+        btn_minus.grid(row=0, column=4, padx=1, pady=3)
+
+        ent_q = ctk.CTkEntry(row_frame, textvariable=qty_var, width=38, height=24, justify="center")
+        ent_q.grid(row=0, column=5, padx=1, pady=3)
+
+        # Stepper [+]
+        btn_plus = ctk.CTkButton(
+            row_frame,
+            text="+",
+            width=22,
+            height=24,
+            fg_color="#27272a",
+            hover_color="#3f3f46",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda r=row_data: self._step_troop_qty(r, +1)
+        )
+        btn_plus.grid(row=0, column=6, padx=1, pady=3)
+
+        # Slider [===O===] (1 to 120)
+        init_val = min(120, max(1, qty))
+        slider_q = ctk.CTkSlider(
+            row_frame,
+            from_=1,
+            to=120,
+            number_of_steps=119,
+            width=100,
+            height=16,
+            command=lambda val, r=row_data: self._on_troop_slider_changed(r, val)
+        )
+        slider_q.set(init_val)
+        slider_q.grid(row=0, column=7, padx=(4, 6), pady=3)
 
         opt_p = ctk.CTkOptionMenu(
             row_frame,
             variable=prio_var,
             values=PRIORITY_OPTIONS,
-            width=140,
+            width=130,
             height=26
         )
-        opt_p.grid(row=0, column=5, padx=3, pady=3, sticky="e")
+        opt_p.grid(row=0, column=8, padx=3, pady=3, sticky="e")
 
         btn_del = ctk.CTkButton(
             row_frame,
@@ -1366,16 +1480,43 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=11, weight="bold"),
             command=lambda r=row_data: self._remove_troop_slot(r)
         )
-        btn_del.grid(row=0, column=6, padx=(3, 6), pady=3)
+        btn_del.grid(row=0, column=9, padx=(3, 6), pady=3)
 
         row_data["opt_t"] = opt_t
+        row_data["btn_minus"] = btn_minus
         row_data["ent_q"] = ent_q
+        row_data["btn_plus"] = btn_plus
+        row_data["slider_q"] = slider_q
         row_data["opt_p"] = opt_p
         row_data["btn_del"] = btn_del
+
+        # Bidirectional sync: entry -> slider
+        qty_var.trace_add("write", lambda *a, r=row_data: self._sync_troop_entry_to_slider(r))
 
         self.troop_slot_rows.append(row_data)
         self._update_troop_row_icon(row_data)
         self._rebuild_troop_slot_indices()
+
+    def _step_troop_qty(self, row_data: dict, delta: int) -> None:
+        try:
+            curr = int(row_data["qty_var"].get())
+        except ValueError:
+            curr = 1
+        new_v = max(1, min(120, curr + delta))
+        row_data["qty_var"].set(str(new_v))
+        row_data["slider_q"].set(new_v)
+
+    def _on_troop_slider_changed(self, row_data: dict, val: float) -> None:
+        new_v = int(round(float(val)))
+        if row_data["qty_var"].get() != str(new_v):
+            row_data["qty_var"].set(str(new_v))
+
+    def _sync_troop_entry_to_slider(self, row_data: dict) -> None:
+        val_str = row_data["qty_var"].get().strip()
+        if val_str.isdigit():
+            v = int(val_str)
+            if 1 <= v <= 120:
+                row_data["slider_q"].set(v)
 
     def _remove_troop_slot(self, row_data: dict) -> None:
         if row_data in self.troop_slot_rows:
@@ -1401,7 +1542,8 @@ class DashboardApp(ctk.CTk):
         idx = len(self.spell_slot_rows)
         row_frame = ctk.CTkFrame(self.spell_rows_frame, fg_color="#18181b", corner_radius=6)
         row_frame.pack(fill="x", padx=2, pady=2)
-        row_frame.grid_columnconfigure(2, weight=1)
+        row_frame.grid_columnconfigure(2, weight=0)
+        row_frame.grid_columnconfigure(7, weight=1)
 
         en_var = ctk.BooleanVar(value=enabled)
         matched_sp = spell_name
@@ -1437,16 +1579,55 @@ class DashboardApp(ctk.CTk):
             row_frame,
             variable=unit_var,
             values=SPELL_OPTIONS,
-            width=170,
+            width=150,
             height=26,
             command=lambda v, r=row_data: self._update_spell_row_icon(r)
         )
         opt_sp.grid(row=0, column=2, padx=3, pady=3, sticky="w")
 
         lbl_q = ctk.CTkLabel(row_frame, text="Qty:", font=ctk.CTkFont(size=11))
-        lbl_q.grid(row=0, column=3, padx=(3, 2), pady=3, sticky="e")
-        ent_q = ctk.CTkEntry(row_frame, textvariable=qty_var, width=50, height=26, justify="center")
-        ent_q.grid(row=0, column=4, padx=(2, 6), pady=3)
+        lbl_q.grid(row=0, column=3, padx=(4, 2), pady=3, sticky="e")
+
+        btn_minus = ctk.CTkButton(
+            row_frame,
+            text="-",
+            width=22,
+            height=24,
+            fg_color="#27272a",
+            hover_color="#3f3f46",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda r=row_data: self._step_spell_qty(r, -1)
+        )
+        btn_minus.grid(row=0, column=4, padx=1, pady=3)
+
+        ent_q = ctk.CTkEntry(row_frame, textvariable=qty_var, width=38, height=24, justify="center")
+        ent_q.grid(row=0, column=5, padx=1, pady=3)
+
+        btn_plus = ctk.CTkButton(
+            row_frame,
+            text="+",
+            width=22,
+            height=24,
+            fg_color="#27272a",
+            hover_color="#3f3f46",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=lambda r=row_data: self._step_spell_qty(r, +1)
+        )
+        btn_plus.grid(row=0, column=6, padx=1, pady=3)
+
+        # Slider [===O===] (1 to 12)
+        init_sp_val = min(12, max(1, qty))
+        slider_q = ctk.CTkSlider(
+            row_frame,
+            from_=1,
+            to=12,
+            number_of_steps=11,
+            width=100,
+            height=16,
+            command=lambda val, r=row_data: self._on_spell_slider_changed(r, val)
+        )
+        slider_q.set(init_sp_val)
+        slider_q.grid(row=0, column=7, padx=(4, 6), pady=3)
 
         btn_del = ctk.CTkButton(
             row_frame,
@@ -1458,15 +1639,41 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=11, weight="bold"),
             command=lambda r=row_data: self._remove_spell_slot(r)
         )
-        btn_del.grid(row=0, column=5, padx=(3, 6), pady=3)
+        btn_del.grid(row=0, column=8, padx=(3, 6), pady=3)
 
         row_data["opt_sp"] = opt_sp
+        row_data["btn_minus"] = btn_minus
         row_data["ent_q"] = ent_q
+        row_data["btn_plus"] = btn_plus
+        row_data["slider_q"] = slider_q
         row_data["btn_del"] = btn_del
+
+        qty_var.trace_add("write", lambda *a, r=row_data: self._sync_spell_entry_to_slider(r))
 
         self.spell_slot_rows.append(row_data)
         self._update_spell_row_icon(row_data)
         self._rebuild_spell_slot_indices()
+
+    def _step_spell_qty(self, row_data: dict, delta: int) -> None:
+        try:
+            curr = int(row_data["qty_var"].get())
+        except ValueError:
+            curr = 1
+        new_v = max(1, min(12, curr + delta))
+        row_data["qty_var"].set(str(new_v))
+        row_data["slider_q"].set(new_v)
+
+    def _on_spell_slider_changed(self, row_data: dict, val: float) -> None:
+        new_v = int(round(float(val)))
+        if row_data["qty_var"].get() != str(new_v):
+            row_data["qty_var"].set(str(new_v))
+
+    def _sync_spell_entry_to_slider(self, row_data: dict) -> None:
+        val_str = row_data["qty_var"].get().strip()
+        if val_str.isdigit():
+            v = int(val_str)
+            if 1 <= v <= 12:
+                row_data["slider_q"].set(v)
 
     def _remove_spell_slot(self, row_data: dict) -> None:
         if row_data in self.spell_slot_rows:
@@ -1494,6 +1701,41 @@ class DashboardApp(ctk.CTk):
             rel_path = UNIT_ASSET_MAP.get(unit_name)
             img = self._load_ctk_image(rel_path, size=(40, 50)) if rel_path else None
             self.lbl_siege_icon.configure(image=img)
+
+    def _on_hero_toggled(self, h_key: str) -> None:
+        """Enforces max 4 active heroes with FIFO auto-deselection rule."""
+        is_checked = self.hero_vars[h_key].get()
+        if is_checked:
+            if h_key not in self._selected_heroes_order:
+                self._selected_heroes_order.append(h_key)
+            if len(self._selected_heroes_order) > 4:
+                # FIFO: deselect the oldest selected hero
+                oldest = self._selected_heroes_order.pop(0)
+                self.hero_vars[oldest].set(False)
+                self._update_hero_card_style(oldest, False)
+            self._update_hero_card_style(h_key, True)
+        else:
+            if h_key in self._selected_heroes_order:
+                self._selected_heroes_order.remove(h_key)
+            self._update_hero_card_style(h_key, False)
+        self._update_hero_header_text()
+
+    def _update_hero_card_style(self, h_key: str, is_active: bool) -> None:
+        if hasattr(self, "hero_frames") and h_key in self.hero_frames:
+            f = self.hero_frames[h_key]
+            if is_active:
+                f.configure(fg_color="#1e293b", border_color="#0284c7", border_width=2)
+            else:
+                f.configure(fg_color="#18181b", border_color="#27272a", border_width=1)
+
+    def _update_hero_header_text(self) -> None:
+        if hasattr(self, "lbl_h_hdr") and hasattr(self, "_selected_heroes_order"):
+            count = len(self._selected_heroes_order)
+            color = "#10b981" if count == 4 else ("#f59e0b" if count > 0 else "#ef4444")
+            self.lbl_h_hdr.configure(
+                text=safe_text(f"👑 Active Heroes ({count}/4 Selected for Battle — Max 4 Allowed):"),
+                text_color=color
+            )
 
     # Backward compatibility properties for any scripts or test suites
     @property
