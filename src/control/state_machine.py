@@ -669,12 +669,14 @@ class StateMachine:
         cx, cy = confirmed_spot
         from src.planning.deployment_planner import DeploymentAction, ActionType
 
-        cfg_hero_count = getattr(self.config.deployment, "hero_count", 2)
+        cfg_hero_count = getattr(self.config.deployment, "hero_count", 4)
         cfg_deploy_siege = getattr(self.config.deployment, "deploy_siege", True)
+        cfg_army = getattr(self.config.deployment, "army", None)
         layout = self.deployment_planner.detect_army_slots(
             frame,
             configured_hero_count=cfg_hero_count,
-            deploy_siege=cfg_deploy_siege
+            deploy_siege=cfg_deploy_siege,
+            configured_army=cfg_army
         )
         self.current_army_layout = layout
         logger.info(
@@ -683,8 +685,24 @@ class StateMachine:
             f"Spells: {layout.spell_slots} at ({cx:.3f}, {cy:.3f})"
         )
 
-        # 1. DEPLOY INITIAL 50% TROOP WAVE ACROSS ALL DETECTED TROOP SLOTS
-        for s_idx, t_slot in enumerate(layout.troop_slots):
+        # Resolve troop deployment order according to configured priority (e.g. Valkyrie 1st, Wall Breakers 2nd)
+        troop_slots_ordered = list(layout.troop_slots)
+        if cfg_army and hasattr(cfg_army, "troops"):
+            active_troops = [t for t in cfg_army.troops if getattr(t, "enabled", True) and getattr(t, "expected_quantity", 0) > 0]
+            if len(active_troops) > 1:
+                sorted_indices = sorted(range(len(active_troops)), key=lambda i: getattr(active_troops[i], "priority", i + 1))
+                reordered = []
+                for idx in sorted_indices:
+                    if idx < len(layout.troop_slots):
+                        reordered.append(layout.troop_slots[idx])
+                for s in layout.troop_slots:
+                    if s not in reordered:
+                        reordered.append(s)
+                troop_slots_ordered = reordered
+                logger.info(f"[DEPLOYMENT] Sequenced troop drop order: {troop_slots_ordered}")
+
+        # 1. DEPLOY INITIAL 50% TROOP WAVE ACROSS ALL DETECTED TROOP SLOTS (IN SEQUENCED PRIORITY ORDER)
+        for s_idx, t_slot in enumerate(troop_slots_ordered):
             if self.is_stopped or self.is_paused:
                 return
             if self.calibrator and not self.calibrator.is_game_in_foreground():
@@ -779,7 +797,7 @@ class StateMachine:
 
         # 4. DEPLOY ALL REMAINING TROOPS ACROSS ALL TROOP SLOTS (UNTIL GREYED OUT)
         if not self.is_stopped and not self.is_paused:
-            for t_slot in layout.troop_slots:
+            for t_slot in troop_slots_ordered:
                 if self.is_stopped or self.is_paused:
                     return
                 if self.calibrator and not self.calibrator.is_game_in_foreground():

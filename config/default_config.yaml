@@ -33,21 +33,34 @@ deployment:
   spell_tap_delay_seconds: 0.2
   army:
     troops:
-    - name: electro_dragon
-      expected_quantity: 16
+    - name: valkyrie
+      expected_quantity: 24
+      priority: 1
+      enabled: true
+      pattern: line_distribute
+    - name: super_wall_breaker
+      expected_quantity: 4
+      priority: 2
+      enabled: true
       pattern: line_distribute
     spells:
     - name: earthquake
       expected_quantity: 11
+      enabled: true
       pattern: randomized_targets
     siege:
-    - name: battle_blimp
+    - name: siege_barracks
       expected_quantity: 1
+      enabled: true
     heroes:
-    - name: dragon_duke
-    - name: archer_queen
-    - name: grand_warden
     - name: minion_prince
+      enabled: true
+    - name: archer_queen
+      enabled: true
+    - name: grand_warden
+      enabled: true
+    - name: barbarian_king
+      enabled: true
     clan_castle: false
   hero_count: 4
   hero_ability_delay_seconds: 6.0

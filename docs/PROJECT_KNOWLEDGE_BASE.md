@@ -87,3 +87,13 @@
 - **Spells (`assets/spells/`)**: Cropped from spell selection screen (Earthquake, Lightning, Rage, Freeze, Jump, Poison, Haste, Healing, Skeleton).
 - **Troops (`assets/troops/`)**: Super Troops and Regular Elixir troops.
 - **TH17 Update (Nov 16)**: Squad Barracks (Barbarian/Archer Squads) and Heroic Spell placeholders are used until visual assets are exported.
+
+---
+
+## 9. GUI Architecture & Dedicated Army Tab
+- **Dedicated Tabview**: Right-hand panel now features `CTkTabview` with two specialized workspaces:
+  1. `📊 Telemetry & Live Feed`: Real-time session stats, screenshot-verified loot tally, and live decision logs.
+  2. `⚔️ Army Setup & Sequencer`: Visual Army Manager allowing user selection of up to 4 troop types, custom drop priority (1st..4th), 8 siege machines, 4 heroes, and spell arsenal.
+- **Cross-Platform macOS Hardening**:
+  - macOS Tkinter Tcl UTF_MAX=3 crash prevention via `safe_text()` for all widgets and logs.
+  - Native Command shortcuts (`⌘R` Start/Stop, `⌘P` Pause, `⌘B` Bind, `Esc` Stop) bound alongside universal F-keys.

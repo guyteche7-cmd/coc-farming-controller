@@ -94,8 +94,9 @@ class TestRulesAndState(unittest.TestCase):
         ledger = ArmyLedger()
         ledger.initialize_from_config(deploy_cfg)
 
-        # Total slots: valkyrie (40), earthquake (11), log launcher (3), 4 heroes
-        self.assertEqual(len(ledger.slots), 7)
+        # Total slots: troops + siege + heroes + spells
+        expected_slots = len(deploy_cfg.army.troops) + len(deploy_cfg.army.siege) + len(deploy_cfg.army.heroes) + len(deploy_cfg.army.spells)
+        self.assertEqual(len(ledger.slots), expected_slots)
         self.assertFalse(ledger.is_fully_deployed)
 
         # Deploy first troop slot (slot 0)

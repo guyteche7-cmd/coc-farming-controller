@@ -119,7 +119,13 @@ class DeploymentPlanner:
             randomized.append((jx, jy))
         return randomized
 
-    def detect_army_slots(self, frame_bgr=None, configured_hero_count: int = -1, deploy_siege: bool = True) -> ArmySlotLayout:
+    def detect_army_slots(
+        self,
+        frame_bgr=None,
+        configured_hero_count: int = -1,
+        deploy_siege: bool = True,
+        configured_army=None
+    ) -> ArmySlotLayout:
         """
         Dynamically inspects the bottom army ribbon to determine occupied slots and assigns:
         - Troop slot(s): Contiguous leading slots with quantity count badges (e.g. [0] or [0, 1]...)
@@ -161,6 +167,51 @@ class DeploymentPlanner:
                 contiguous.append(i)
             else:
                 break
+
+        total_occ = len(contiguous)
+
+        # If configured_army is provided, use deterministic partitioning according to Supercell ribbon invariant:
+        # [Troops (1..N)] -> [Siege Machine (0..1)] -> [Heroes (0..5)] -> [Spells (1..M)]
+        if configured_army is not None:
+            active_troops = [t for t in getattr(configured_army, "troops", []) if getattr(t, "enabled", True) and getattr(t, "expected_quantity", 0) > 0]
+            num_troops = max(1, len(active_troops)) if active_troops else 1
+            has_siege = 1 if (deploy_siege and any(getattr(s, "enabled", True) for s in getattr(configured_army, "siege", []))) else 0
+            cfg_heroes = getattr(configured_army, "heroes", [])
+            active_heroes = [h for h in cfg_heroes if (isinstance(h, dict) and h.get("enabled", True)) or getattr(h, "enabled", True)]
+            num_heroes = len(active_heroes) if active_heroes else (configured_hero_count if configured_hero_count > 0 else 4)
+            active_spells = [sp for sp in getattr(configured_army, "spells", []) if getattr(sp, "enabled", True) and getattr(sp, "expected_quantity", 0) > 0]
+            num_spells = max(1, len(active_spells)) if active_spells else 1
+
+            if total_occ == 0:
+                total_occ = num_troops + has_siege + num_heroes + num_spells
+                contiguous = list(range(total_occ))
+
+            troop_slots = list(range(0, min(num_troops, total_occ)))
+            siege_slot = len(troop_slots) if (has_siege and len(troop_slots) < total_occ) else None
+            hero_start = (siege_slot + 1) if siege_slot is not None else len(troop_slots)
+            hero_end = min(total_occ - (num_spells if total_occ > hero_start + num_spells else 0), hero_start + num_heroes)
+            if hero_end < hero_start:
+                hero_end = min(total_occ, hero_start + num_heroes)
+            hero_slots = list(range(hero_start, hero_end))
+            spell_start = hero_slots[-1] + 1 if hero_slots else (siege_slot + 1 if siege_slot is not None else len(troop_slots))
+            spell_slots = list(range(spell_start, total_occ))
+            if not spell_slots and total_occ > hero_start and active_spells:
+                spell_slots = [total_occ - 1]
+                hero_slots = [s for s in hero_slots if s != total_occ - 1]
+
+            logger.info(
+                f"[ARMY LAYOUT (CONFIGURED)] Ribbon {total_occ} slots -> "
+                f"Troops={troop_slots}, Siege={siege_slot}, Heroes={hero_slots} ({len(hero_slots)} heroes), "
+                f"Spells={spell_slots}"
+            )
+            return ArmySlotLayout(
+                troop_slots=troop_slots,
+                siege_slot=siege_slot,
+                hero_slots=hero_slots,
+                spell_slots=spell_slots,
+                total_occupied=total_occ,
+                occupied_slots=contiguous
+            )
 
         expected_heroes = configured_hero_count if configured_hero_count > 0 else 4
         expected_siege = 1 if deploy_siege else 0
@@ -426,86 +477,100 @@ class DeploymentPlanner:
         self,
         confirmed_x: float,
         confirmed_y: float,
-        troop_tap_count: int = 18
+        troop_tap_count: int = 18,
+        layout: Optional[ArmySlotLayout] = None
     ) -> List[DeploymentAction]:
         """
-        Generates clean full deployment at confirmed coordinates:
-        - Slot 0 (Troops): Rapid clicks (troop_tap_count) to empty troop stack
-        - Slot 1 (Siege): 1 click to select + 1 click to deploy
-        - Slots 2-5 (Heroes): For each hero, 1 click to select + 1 click to deploy (NO multi-clicking!)
-        - Slot 6 (Spells): 1 click to select + 2 clicks to cast
+        Generates clean full deployment at confirmed coordinates using dynamic or fallback slot layout:
+        - Troop slots: Rapid clicks (troop_tap_count) to empty each troop stack
+        - Siege slot (if present): 1 click to select + 1 click to deploy
+        - Hero slots: For each hero, 1 click to select + 1 click to deploy
+        - Spell slots: Select and cast across base target points
         - Pause: 1.5s for heroes to march
-        - Hero Abilities (Slots 2-5): 1 click on each hero slot on ribbon to activate ability
+        - Hero Abilities: 1 click on each actual hero slot on ribbon
         """
         plan: List[DeploymentAction] = []
 
-        # -------------------------------------------------------------
-        # 1. SLOT 0: DUMP REMAINING TROOPS AT CONFIRMED SPOT
-        # -------------------------------------------------------------
-        plan.append(DeploymentAction(
-            action_type=ActionType.SELECT_SLOT,
-            target_name="Troops (Slot 0)",
-            slot_index=0,
-            norm_x=self.SLOT_X_COORDINATES[0],
-            norm_y=self.RIBBON_Y,
-            delay_after_sec=0.10,
-            description="Select regular troops (Slot 0)"
-        ))
-        plan.append(DeploymentAction(
-            action_type=ActionType.DEPLOY_POINT,
-            target_name="Dump Troops",
-            slot_index=0,
-            norm_x=confirmed_x,
-            norm_y=confirmed_y,
-            tap_count=troop_tap_count,
-            delay_after_sec=self.tap_delay,
-            description=f"Deploy all remaining troops ({troop_tap_count} taps) at ({confirmed_x:.3f}, {confirmed_y:.3f})"
-        ))
+        # Resolve layout
+        if layout is None:
+            troop_slots = [0]
+            siege_slot = 1
+            hero_slots = [2, 3, 4, 5]
+            spell_slots = [6]
+        else:
+            troop_slots = layout.troop_slots if layout.troop_slots else [0]
+            siege_slot = layout.siege_slot
+            hero_slots = layout.hero_slots
+            spell_slots = layout.spell_slots
 
         # -------------------------------------------------------------
-        # 2. SLOT 1: SIEGE MACHINE / CLAN CASTLE (1 CLICK TO DEPLOY)
+        # 1. TROOPS: DUMP REMAINING TROOPS AT CONFIRMED SPOT
         # -------------------------------------------------------------
-        plan.append(DeploymentAction(
-            action_type=ActionType.SELECT_SLOT,
-            target_name="Siege Machine (Slot 1)",
-            slot_index=1,
-            norm_x=self.SLOT_X_COORDINATES[1],
-            norm_y=self.RIBBON_Y,
-            delay_after_sec=0.10,
-            description="Select Siege Machine (Slot 1)"
-        ))
-        plan.append(DeploymentAction(
-            action_type=ActionType.DEPLOY_POINT,
-            target_name="Deploy Siege",
-            slot_index=1,
-            norm_x=confirmed_x,
-            norm_y=confirmed_y,
-            tap_count=1,
-            delay_after_sec=0.10,
-            description=f"Deploy Siege Machine (1 tap) at ({confirmed_x:.3f}, {confirmed_y:.3f})"
-        ))
+        for t_slot in troop_slots:
+            plan.append(DeploymentAction(
+                action_type=ActionType.SELECT_SLOT,
+                target_name=f"Troops (Slot {t_slot})",
+                slot_index=t_slot,
+                norm_x=self.SLOT_X_COORDINATES[min(t_slot, len(self.SLOT_X_COORDINATES)-1)],
+                norm_y=self.RIBBON_Y,
+                delay_after_sec=0.10,
+                description=f"Select regular troops (Slot {t_slot})"
+            ))
+            plan.append(DeploymentAction(
+                action_type=ActionType.DEPLOY_POINT,
+                target_name=f"Dump Troops Slot {t_slot}",
+                slot_index=t_slot,
+                norm_x=confirmed_x,
+                norm_y=confirmed_y,
+                tap_count=troop_tap_count,
+                delay_after_sec=self.tap_delay,
+                description=f"Deploy troops ({troop_tap_count} taps) at ({confirmed_x:.3f}, {confirmed_y:.3f})"
+            ))
 
         # -------------------------------------------------------------
-        # 3. SLOTS 2-5: HEROES (1 CLICK TO SELECT, 1 CLICK TO DEPLOY)
+        # 2. SIEGE MACHINE (1 CLICK TO SELECT, 1 CLICK TO DEPLOY)
         # -------------------------------------------------------------
-        hero_names = ["Hero 1 (Minion Prince)", "Hero 2 (Archer Queen)", "Hero 3 (Grand Warden)", "Hero 4 (Barbarian King)"]
-        for idx, slot_idx in enumerate([2, 3, 4, 5]):
-            h_name = hero_names[idx] if idx < len(hero_names) else f"Hero Slot {slot_idx}"
-            # 1 click to select hero
+        if siege_slot is not None and siege_slot < len(self.SLOT_X_COORDINATES):
+            plan.append(DeploymentAction(
+                action_type=ActionType.SELECT_SLOT,
+                target_name=f"Siege Machine (Slot {siege_slot})",
+                slot_index=siege_slot,
+                norm_x=self.SLOT_X_COORDINATES[siege_slot],
+                norm_y=self.RIBBON_Y,
+                delay_after_sec=0.10,
+                description=f"Select Siege Machine (Slot {siege_slot})"
+            ))
+            plan.append(DeploymentAction(
+                action_type=ActionType.DEPLOY_POINT,
+                target_name="Deploy Siege",
+                slot_index=siege_slot,
+                norm_x=confirmed_x,
+                norm_y=confirmed_y,
+                tap_count=1,
+                delay_after_sec=0.10,
+                description=f"Deploy Siege Machine (1 tap) at ({confirmed_x:.3f}, {confirmed_y:.3f})"
+            ))
+
+        # -------------------------------------------------------------
+        # 3. HEROES (1 CLICK TO SELECT, 1 CLICK TO DEPLOY PER HERO)
+        # -------------------------------------------------------------
+        for idx, h_slot in enumerate(hero_slots):
+            if h_slot >= len(self.SLOT_X_COORDINATES):
+                continue
+            h_name = f"Hero {idx+1} (Slot {h_slot})"
             plan.append(DeploymentAction(
                 action_type=ActionType.SELECT_SLOT,
                 target_name=h_name,
-                slot_index=slot_idx,
-                norm_x=self.SLOT_X_COORDINATES[slot_idx],
+                slot_index=h_slot,
+                norm_x=self.SLOT_X_COORDINATES[h_slot],
                 norm_y=self.RIBBON_Y,
                 delay_after_sec=0.10,
                 description=f"Select {h_name} on ribbon"
             ))
-            # 1 click to deploy hero
             plan.append(DeploymentAction(
                 action_type=ActionType.DEPLOY_POINT,
                 target_name=f"Deploy {h_name}",
-                slot_index=slot_idx,
+                slot_index=h_slot,
                 norm_x=confirmed_x,
                 norm_y=confirmed_y,
                 tap_count=1,
@@ -514,27 +579,30 @@ class DeploymentPlanner:
             ))
 
         # -------------------------------------------------------------
-        # 4. SLOT 6: SPELLS
+        # 4. SPELLS
         # -------------------------------------------------------------
-        plan.append(DeploymentAction(
-            action_type=ActionType.SELECT_SLOT,
-            target_name="Spells (Slot 6)",
-            slot_index=6,
-            norm_x=self.SLOT_X_COORDINATES[6],
-            norm_y=self.RIBBON_Y,
-            delay_after_sec=0.10,
-            description="Select Spells (Slot 6)"
-        ))
-        plan.append(DeploymentAction(
-            action_type=ActionType.DEPLOY_POINT,
-            target_name="Cast Spells",
-            slot_index=6,
-            norm_x=confirmed_x,
-            norm_y=confirmed_y,
-            tap_count=2,
-            delay_after_sec=self.spell_delay,
-            description=f"Cast Spells (2 taps) at ({confirmed_x:.3f}, {confirmed_y:.3f})"
-        ))
+        for sp_slot in spell_slots:
+            if sp_slot >= len(self.SLOT_X_COORDINATES):
+                continue
+            plan.append(DeploymentAction(
+                action_type=ActionType.SELECT_SLOT,
+                target_name=f"Spells (Slot {sp_slot})",
+                slot_index=sp_slot,
+                norm_x=self.SLOT_X_COORDINATES[sp_slot],
+                norm_y=self.RIBBON_Y,
+                delay_after_sec=0.10,
+                description=f"Select Spells (Slot {sp_slot})"
+            ))
+            plan.append(DeploymentAction(
+                action_type=ActionType.DEPLOY_POINT,
+                target_name="Cast Spells",
+                slot_index=sp_slot,
+                norm_x=confirmed_x,
+                norm_y=confirmed_y,
+                tap_count=2,
+                delay_after_sec=self.spell_delay,
+                description=f"Cast Spells (2 taps) at ({confirmed_x:.3f}, {confirmed_y:.3f})"
+            ))
 
         # -------------------------------------------------------------
         # 5. MARCH PAUSE (1.5s) BEFORE TRIGGERING HERO ABILITIES
@@ -547,20 +615,24 @@ class DeploymentPlanner:
         ))
 
         # -------------------------------------------------------------
-        # 6. ACTIVATE HERO ABILITIES (1 CLICK PER HERO ON RIBBON)
+        # 6. ACTIVATE HERO ABILITIES (1 CLICK PER ACTUAL HERO ON RIBBON)
         # -------------------------------------------------------------
-        for idx, slot_idx in enumerate([2, 3, 4, 5]):
-            h_name = hero_names[idx] if idx < len(hero_names) else f"Hero Slot {slot_idx}"
+        for idx, h_slot in enumerate(hero_slots):
+            if h_slot >= len(self.SLOT_X_COORDINATES):
+                continue
+            h_name = f"Hero {idx+1} (Slot {h_slot})"
             plan.append(DeploymentAction(
                 action_type=ActionType.ACTIVATE_ABILITY,
                 target_name=f"Ability: {h_name}",
-                slot_index=slot_idx,
-                norm_x=self.SLOT_X_COORDINATES[slot_idx],
+                slot_index=h_slot,
+                norm_x=self.SLOT_X_COORDINATES[h_slot],
                 norm_y=self.RIBBON_Y,
                 tap_count=1,
                 delay_after_sec=0.15,
-                description=f"Click Hero Slot {slot_idx} (1 tap) to trigger ability for {h_name}"
+                description=f"Click Hero Slot {h_slot} (1 tap) to trigger ability for {h_name}"
             ))
+
+        return plan
 
         return plan
 

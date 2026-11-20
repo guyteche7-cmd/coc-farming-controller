@@ -58,12 +58,87 @@ def safe_text(text: str) -> str:
         "📍": "•",
         "⌨": "⌨",
         "⚠️": "[!]",
+        "📊": "[Live]",
+        "💾": "[Save]",
+        "🛡️": "[Siege]", "🛡": "[Siege]",
+        "👑": "[Hero]",
     }
     cleaned = text
     for emoji, repl in replacements.items():
         cleaned = cleaned.replace(emoji, repl)
     # Strip any remaining characters outside the Basic Multilingual Plane (U+0000 to U+FFFF)
     return "".join(c for c in cleaned if ord(c) <= 0xFFFF).strip()
+
+
+UNIT_ASSET_MAP = {
+    # Troops
+    "Valkyrie": "assets/army/cards/troops/super_valkyrie_card.png",
+    "Super Valkyrie": "assets/army/cards/troops/super_valkyrie_card.png",
+    "Super Wall Breaker": "assets/army/cards/troops/wall_breaker_card.png",
+    "Wall Breaker": "assets/army/cards/troops/wall_breaker_card.png",
+    "Sneaky Goblin": "assets/army/cards/troops/sneaky_goblin_card.png",
+    "Healer": "assets/army/cards/troops/healer_card.png",
+    "Electro Dragon": "assets/army/cards/troops/electro_dragon_card.png",
+    "Dragon": "assets/army/cards/troops/dragon_card.png",
+    "Balloon": "assets/army/cards/troops/balloon_card.png",
+    "Root Rider": "assets/army/cards/troops/root_rider_card.png",
+    "Barbarian Squad": "assets/army/cards/troops/super_barbarian_card.png",
+    "Archer Squad": "assets/army/cards/troops/super_archer_card.png",
+    "Bowler": "assets/army/cards/troops/bowler_card.png",
+    "Hog Rider": "assets/army/cards/troops/hog_rider_card.png",
+    "Miner": "assets/army/cards/troops/miner_card.png",
+    "Yeti": "assets/army/cards/troops/yeti_card.png",
+    "P.E.K.K.A": "assets/army/cards/troops/pekka_card.png",
+
+    # Siege Machines
+    "Siege Barracks": "assets/siege/siege_barracks.png",
+    "Battle Blimp": "assets/siege/battle_blimp.png",
+    "Log Launcher": "assets/siege/log_launcher.png",
+    "Flame Flinger": "assets/siege/flame_flinger.png",
+    "Wall Wrecker": "assets/siege/wall_wrecker.png",
+    "Stone Slammer": "assets/siege/stone_slammer.png",
+    "Battle Drill": "assets/siege/battle_drill.png",
+    "Siege Balloon": "assets/siege/siege_balloon.png",
+
+    # Heroes
+    "Minion Prince": "assets/heroes/minion_prince.png",
+    "Archer Queen": "assets/heroes/archer_queen.png",
+    "Grand Warden": "assets/heroes/grand_warden.png",
+    "Barbarian King": "assets/heroes/barbarian_king.png",
+
+    # Spells
+    "Earthquake": "assets/spells/earthquake.png",
+    "Lightning": "assets/spells/lightning.png",
+    "Rage": "assets/spells/rage.png",
+    "Freeze": "assets/spells/freeze.png",
+    "Jump": "assets/spells/jump.png",
+    "Poison": "assets/spells/poison.png",
+    "Haste": "assets/spells/haste.png",
+    "Healing": "assets/spells/healing.png",
+    "Skeleton": "assets/spells/skeleton.png",
+    "Heroic Spell": "assets/spells/rage.png",
+}
+
+TROOP_OPTIONS = [
+    "Valkyrie", "Super Valkyrie", "Super Wall Breaker", "Wall Breaker",
+    "Sneaky Goblin", "Healer", "Electro Dragon", "Dragon", "Balloon",
+    "Root Rider", "Barbarian Squad", "Archer Squad", "Bowler",
+    "Hog Rider", "Miner", "Yeti", "P.E.K.K.A"
+]
+
+SIEGE_OPTIONS = [
+    "Siege Barracks", "Battle Blimp", "Log Launcher", "Flame Flinger",
+    "Wall Wrecker", "Stone Slammer", "Battle Drill", "Siege Balloon"
+]
+
+SPELL_OPTIONS = [
+    "Earthquake", "Lightning", "Rage", "Freeze", "Jump",
+    "Poison", "Haste", "Healing", "Skeleton", "Heroic Spell"
+]
+
+PRIORITY_OPTIONS = [
+    "1st (Drop First)", "2nd (Drop Second)", "3rd (Drop Third)", "4th (Drop Fourth)"
+]
 
 
 class DashboardApp(ctk.CTk):
@@ -77,10 +152,10 @@ class DashboardApp(ctk.CTk):
         self.notifier = Notifier(voice_enabled=True, sounds_enabled=True)
 
         self.title("CoC Auto Farm Dashboard — Version 1 (AI Hybrid Edition)")
-        win_w = 1120 if sys.platform == "darwin" else 1040
-        win_h = 740 if sys.platform == "darwin" else 700
+        win_w = 1140 if sys.platform == "darwin" else 1080
+        win_h = 760 if sys.platform == "darwin" else 720
         self.geometry(f"{win_w}x{win_h}")
-        self.minsize(980, 640)
+        self.minsize(1000, 660)
 
         self.controller = SessionController(
             config_manager=self.config_manager,
@@ -117,6 +192,19 @@ class DashboardApp(ctk.CTk):
             self.update()
         except Exception as e:
             logger.debug(f"macOS paint trigger: {e}")
+
+    def _load_ctk_image(self, rel_path: str, size: Tuple[int, int] = (36, 36)) -> Optional[ctk.CTkImage]:
+        """Loads and caches a CTkImage from a relative project asset path safely."""
+        try:
+            from PIL import Image
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            full_path = os.path.join(base_dir, rel_path.replace("/", os.sep))
+            if os.path.exists(full_path):
+                img = Image.open(full_path).convert("RGBA")
+                return ctk.CTkImage(light_image=img, dark_image=img, size=size)
+        except Exception as e:
+            logger.debug(f"Image load notice for '{rel_path}': {e}")
+        return None
 
     def _bind_keyboard_shortcuts(self) -> None:
         """Binds native macOS Command shortcuts and universal F-keys to dashboard actions."""
@@ -669,15 +757,16 @@ class DashboardApp(ctk.CTk):
 
 
 
-        # ----------------- MAIN VIEW (Telemetry & Feed) -----------------
+        # ----------------- MAIN VIEW (Tabbed Layout) -----------------
         main_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#18181b")
         main_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 8), pady=8)
         main_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(3, weight=1)
+        main_frame.grid_rowconfigure(0, weight=0)
+        main_frame.grid_rowconfigure(1, weight=1)
 
         # Header with State, Shortcuts & Quick Action Buttons
         header_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, padx=16, pady=(12, 8), sticky="ew")
+        header_frame.grid(row=0, column=0, padx=16, pady=(12, 6), sticky="ew")
 
         # Left side: Active State Pill
         lbl_state_title = ctk.CTkLabel(header_frame, text="Active State:", font=ctk.CTkFont(size=13, weight="bold"))
@@ -723,7 +812,7 @@ class DashboardApp(ctk.CTk):
 
         self.btn_hdr_stop = ctk.CTkButton(
             header_frame,
-            text="🛑 Stop (Esc)" if sys.platform == "darwin" else "🛑 Stop (F10)",
+            text=safe_text("🛑 Stop (Esc)" if sys.platform == "darwin" else "🛑 Stop (F10)"),
             width=90,
             height=28,
             fg_color="#dc2626",
@@ -772,9 +861,26 @@ class DashboardApp(ctk.CTk):
         )
         lbl_shortcuts.pack(side="right", padx=(0, 6))
 
+        # Main Tabview on Right Panel:
+        # Tab 1: Live Telemetry & Feed
+        # Tab 2: Army Setup & Drop Sequencer
+        self.main_tabview = ctk.CTkTabview(main_frame, corner_radius=10, fg_color="#18181b")
+        self.main_tabview.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 6))
+        self.main_tabview.grid_columnconfigure(0, weight=1)
+        self.main_tabview.grid_rowconfigure(0, weight=1)
+
+        tab_live_name = safe_text("📊 Telemetry & Live Feed")
+        tab_army_name = safe_text("⚔️ Army Setup & Sequencer")
+        self.tab_live = self.main_tabview.add(tab_live_name)
+        self.tab_army = self.main_tabview.add(tab_army_name)
+
+        self.tab_live.grid_columnconfigure(0, weight=1)
+        self.tab_live.grid_rowconfigure(2, weight=1)
+
+        # ----------------- TAB 1: TELEMETRY & FEED -----------------
         # Telemetry Cards (Stats Grid - Attacks & Skips)
-        telemetry_frame = ctk.CTkFrame(main_frame, fg_color="#222226", corner_radius=10)
-        telemetry_frame.grid(row=1, column=0, padx=16, pady=(0, 8), sticky="ew")
+        telemetry_frame = ctk.CTkFrame(self.tab_live, fg_color="#222226", corner_radius=10)
+        telemetry_frame.grid(row=0, column=0, padx=8, pady=(4, 6), sticky="ew")
         for i in range(2):
             telemetry_frame.grid_columnconfigure(i, weight=1)
 
@@ -782,8 +888,8 @@ class DashboardApp(ctk.CTk):
         self.lbl_stat_skips = self._create_stat_card(telemetry_frame, 1, "Skipped Bases", "0")
 
         # Loot Collected Section (Screenshot Verified)
-        loot_section_frame = ctk.CTkFrame(main_frame, fg_color="#222226", corner_radius=10)
-        loot_section_frame.grid(row=2, column=0, padx=16, pady=(0, 10), sticky="ew")
+        loot_section_frame = ctk.CTkFrame(self.tab_live, fg_color="#222226", corner_radius=10)
+        loot_section_frame.grid(row=1, column=0, padx=8, pady=(0, 6), sticky="ew")
         loot_section_frame.grid_columnconfigure(0, weight=1)
         loot_section_frame.grid_columnconfigure(1, weight=1)
         loot_section_frame.grid_columnconfigure(2, weight=1)
@@ -799,7 +905,7 @@ class DashboardApp(ctk.CTk):
 
         # Gold Card
         gold_card = ctk.CTkFrame(loot_section_frame, fg_color="#18181b", corner_radius=8)
-        gold_card.grid(row=1, column=0, padx=8, pady=(2, 8), sticky="ew")
+        gold_card.grid(row=1, column=0, padx=8, pady=(2, 6), sticky="ew")
         gold_card.grid_columnconfigure(0, weight=1)
         lbl_g_t = ctk.CTkLabel(gold_card, text=safe_text("🟡 Gold"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#fbbf24")
         lbl_g_t.pack(pady=(4, 0))
@@ -810,7 +916,7 @@ class DashboardApp(ctk.CTk):
 
         # Elixir Card
         elixir_card = ctk.CTkFrame(loot_section_frame, fg_color="#18181b", corner_radius=8)
-        elixir_card.grid(row=1, column=1, padx=8, pady=(2, 8), sticky="ew")
+        elixir_card.grid(row=1, column=1, padx=8, pady=(2, 6), sticky="ew")
         elixir_card.grid_columnconfigure(0, weight=1)
         lbl_e_t = ctk.CTkLabel(elixir_card, text=safe_text("🟣 Elixir"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#d946ef")
         lbl_e_t.pack(pady=(4, 0))
@@ -821,7 +927,7 @@ class DashboardApp(ctk.CTk):
 
         # Dark Elixir Card
         de_card = ctk.CTkFrame(loot_section_frame, fg_color="#18181b", corner_radius=8)
-        de_card.grid(row=1, column=2, padx=8, pady=(2, 8), sticky="ew")
+        de_card.grid(row=1, column=2, padx=8, pady=(2, 6), sticky="ew")
         de_card.grid_columnconfigure(0, weight=1)
         lbl_de_t = ctk.CTkLabel(de_card, text=safe_text("⚫ Dark Elixir"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#38bdf8")
         lbl_de_t.pack(pady=(4, 0))
@@ -831,22 +937,447 @@ class DashboardApp(ctk.CTk):
         self.lbl_loot_de_last.pack(pady=(0, 4))
 
         # Activity & Decision Feed
-        feed_frame = ctk.CTkFrame(main_frame, fg_color="#222226", corner_radius=10)
-        feed_frame.grid(row=3, column=0, padx=16, pady=(0, 14), sticky="nsew")
+        feed_frame = ctk.CTkFrame(self.tab_live, fg_color="#222226", corner_radius=10)
+        feed_frame.grid(row=2, column=0, padx=8, pady=(0, 8), sticky="nsew")
         feed_frame.grid_columnconfigure(0, weight=1)
         feed_frame.grid_rowconfigure(1, weight=1)
 
         lbl_feed_title = ctk.CTkLabel(feed_frame, text=safe_text("📜 Activity & Decision Feed"), font=ctk.CTkFont(size=13, weight="bold"))
-        lbl_feed_title.grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
+        lbl_feed_title.grid(row=0, column=0, padx=12, pady=(8, 4), sticky="w")
 
         mono_family = "Menlo" if sys.platform == "darwin" else "Consolas"
         self.txt_logs = ctk.CTkTextbox(feed_frame, font=ctk.CTkFont(family=mono_family, size=12), fg_color="#18181b")
         self.txt_logs.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
 
+        # ----------------- TAB 2: ARMY SETUP & DROP SEQUENCER -----------------
+        self._build_army_tab(self.tab_army)
+
         self.log_event("Application initialized. Ready to farm.")
         self.notifier.announce("Clash of Clans Farming Controller is ready", chime="ok")
 
         self._update_window_binding_ui()
+
+    def _build_army_tab(self, parent) -> None:
+        """Constructs the dedicated Army Configuration & Drop Sequencer tab."""
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        scroll = ctk.CTkScrollableFrame(
+            parent,
+            fg_color="transparent",
+            scrollbar_button_color="#3f3f46",
+            scrollbar_button_hover_color="#52525b"
+        )
+        scroll.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+        scroll.grid_columnconfigure(0, weight=1)
+
+        # Header banner
+        lbl_hdr = ctk.CTkLabel(
+            scroll,
+            text=safe_text("⚔️ Army Composition & Drop Sequencer (TH17 Ready)"),
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#38bdf8"
+        )
+        lbl_hdr.grid(row=0, column=0, padx=8, pady=(4, 2), sticky="w")
+
+        lbl_desc = ctk.CTkLabel(
+            scroll,
+            text="Configure army squad, siege machine, hero lineup, and custom deployment priority.\nUnits deploy in combat strictly according to your selected drop sequence order.",
+            font=ctk.CTkFont(size=11),
+            text_color="#9ca3af",
+            justify="left"
+        )
+        lbl_desc.grid(row=1, column=0, padx=8, pady=(0, 10), sticky="w")
+
+        # -------------------------------------------------------------
+        # 1. TROOPS SQUAD & DROP SEQUENCE PRIORITY
+        # -------------------------------------------------------------
+        card_troops = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
+        card_troops.grid(row=2, column=0, padx=8, pady=(0, 10), sticky="ew")
+        card_troops.grid_columnconfigure(2, weight=1)
+
+        lbl_t_hdr = ctk.CTkLabel(
+            card_troops,
+            text=safe_text("🎯 Troop Squads & Drop Sequence (Priority Order):"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#fbbf24"
+        )
+        lbl_t_hdr.grid(row=0, column=0, columnspan=6, padx=12, pady=(10, 6), sticky="w")
+
+        self.troop_enabled_vars = []
+        self.troop_unit_vars = []
+        self.troop_qty_vars = []
+        self.troop_prio_vars = []
+        self.troop_icon_labels = []
+
+        cfg_troops = getattr(self.config.deployment.army, "troops", [])
+        default_troop_names = ["Valkyrie", "Super Wall Breaker", "Healer", "Sneaky Goblin"]
+        default_quantities = [24, 4, 5, 10]
+
+        for s_idx in range(4):
+            if s_idx < len(cfg_troops):
+                cfg_t = cfg_troops[s_idx]
+                t_en = getattr(cfg_t, "enabled", s_idx < 2)
+                t_name_raw = getattr(cfg_t, "name", "valkyrie").replace("_", " ").title()
+                matched_name = default_troop_names[s_idx]
+                for opt in TROOP_OPTIONS:
+                    if opt.lower().replace(" ", "") == t_name_raw.lower().replace(" ", ""):
+                        matched_name = opt
+                        break
+                t_qty = str(getattr(cfg_t, "expected_quantity", default_quantities[s_idx]))
+                prio_idx = min(3, max(0, getattr(cfg_t, "priority", s_idx + 1) - 1))
+                t_prio = PRIORITY_OPTIONS[prio_idx]
+            else:
+                t_en = (s_idx < 2)
+                matched_name = default_troop_names[s_idx]
+                t_qty = str(default_quantities[s_idx])
+                t_prio = PRIORITY_OPTIONS[s_idx]
+
+            en_var = ctk.BooleanVar(value=t_en)
+            unit_var = ctk.StringVar(value=matched_name)
+            qty_var = ctk.StringVar(value=t_qty)
+            prio_var = ctk.StringVar(value=t_prio)
+
+            self.troop_enabled_vars.append(en_var)
+            self.troop_unit_vars.append(unit_var)
+            self.troop_qty_vars.append(qty_var)
+            self.troop_prio_vars.append(prio_var)
+
+            row_i = s_idx + 1
+
+            chk_t = ctk.CTkCheckBox(
+                card_troops,
+                text=f"Slot {s_idx+1}:",
+                variable=en_var,
+                width=65,
+                font=ctk.CTkFont(size=11, weight="bold")
+            )
+            chk_t.grid(row=row_i, column=0, padx=(12, 4), pady=4, sticky="w")
+
+            lbl_ico = ctk.CTkLabel(card_troops, text="", width=32, height=32)
+            lbl_ico.grid(row=row_i, column=1, padx=4, pady=4)
+            self.troop_icon_labels.append(lbl_ico)
+
+            opt_t = ctk.CTkOptionMenu(
+                card_troops,
+                variable=unit_var,
+                values=TROOP_OPTIONS,
+                width=140,
+                height=26,
+                command=lambda v, idx=s_idx: self._update_troop_icon_preview(idx)
+            )
+            opt_t.grid(row=row_i, column=2, padx=4, pady=4, sticky="w")
+
+            lbl_q = ctk.CTkLabel(card_troops, text="Qty:", font=ctk.CTkFont(size=11))
+            lbl_q.grid(row=row_i, column=3, padx=(4, 2), pady=4, sticky="e")
+            ent_q = ctk.CTkEntry(card_troops, textvariable=qty_var, width=44, height=26, justify="center")
+            ent_q.grid(row=row_i, column=4, padx=(2, 6), pady=4)
+
+            opt_p = ctk.CTkOptionMenu(
+                card_troops,
+                variable=prio_var,
+                values=PRIORITY_OPTIONS,
+                width=130,
+                height=26
+            )
+            opt_p.grid(row=row_i, column=5, padx=(4, 12), pady=4, sticky="e")
+
+            self._update_troop_icon_preview(s_idx)
+
+        # -------------------------------------------------------------
+        # 2. SIEGE MACHINE (SLOT 2 - BETWEEN TROOPS & HEROES)
+        # -------------------------------------------------------------
+        card_siege = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
+        card_siege.grid(row=3, column=0, padx=8, pady=(0, 10), sticky="ew")
+        card_siege.grid_columnconfigure(2, weight=1)
+
+        lbl_s_hdr = ctk.CTkLabel(
+            card_siege,
+            text=safe_text("🛡️ Siege Machine (Deployment Slot 2):"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#38bdf8"
+        )
+        lbl_s_hdr.grid(row=0, column=0, columnspan=4, padx=12, pady=(10, 4), sticky="w")
+
+        self.chk_siege_var = ctk.BooleanVar(value=getattr(self.config.deployment, "deploy_siege", True))
+        chk_siege = ctk.CTkCheckBox(
+            card_siege,
+            text="Deploy Siege Machine (1 single tap drop, never spammed as troop or activated as hero)",
+            variable=self.chk_siege_var,
+            font=ctk.CTkFont(size=11)
+        )
+        chk_siege.grid(row=1, column=0, columnspan=3, padx=12, pady=(0, 6), sticky="w")
+
+        self.lbl_siege_icon = ctk.CTkLabel(card_siege, text="", width=36, height=36)
+        self.lbl_siege_icon.grid(row=2, column=0, padx=(12, 6), pady=(0, 10))
+
+        curr_siege_name = "Siege Barracks"
+        cfg_sieges = getattr(self.config.deployment.army, "siege", [])
+        if cfg_sieges and getattr(cfg_sieges[0], "name", None):
+            s_cand = cfg_sieges[0].name.replace("_", " ").title()
+            for opt in SIEGE_OPTIONS:
+                if opt.lower().replace(" ", "") == s_cand.lower().replace(" ", ""):
+                    curr_siege_name = opt
+                    break
+
+        self.siege_unit_var = ctk.StringVar(value=curr_siege_name)
+        opt_siege = ctk.CTkOptionMenu(
+            card_siege,
+            variable=self.siege_unit_var,
+            values=SIEGE_OPTIONS,
+            width=180,
+            height=26,
+            command=lambda v: self._update_siege_icon_preview()
+        )
+        opt_siege.grid(row=2, column=1, padx=6, pady=(0, 10), sticky="w")
+        self._update_siege_icon_preview()
+
+        # -------------------------------------------------------------
+        # 3. HEROES (TH17 CONTEXT - 4 HEROES WITH ATTACK RIBBON ICONS)
+        # -------------------------------------------------------------
+        card_heroes = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
+        card_heroes.grid(row=4, column=0, padx=8, pady=(0, 10), sticky="ew")
+        for c_i in range(4):
+            card_heroes.grid_columnconfigure(c_i, weight=1)
+
+        lbl_h_hdr = ctk.CTkLabel(
+            card_heroes,
+            text=safe_text("👑 Active Heroes (Town Hall 17 Hero Roster):"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#f43f5e"
+        )
+        lbl_h_hdr.grid(row=0, column=0, columnspan=4, padx=12, pady=(10, 6), sticky="w")
+
+        self.hero_vars = {}
+        hero_defs = [
+            ("minion_prince", "Minion Prince", "assets/heroes/minion_prince.png"),
+            ("archer_queen", "Archer Queen", "assets/heroes/archer_queen.png"),
+            ("grand_warden", "Grand Warden", "assets/heroes/grand_warden.png"),
+            ("barbarian_king", "Barbarian King", "assets/heroes/barbarian_king.png"),
+        ]
+
+        cfg_heroes = getattr(self.config.deployment.army, "heroes", [])
+        cfg_hero_active_map = {}
+        for h in cfg_heroes:
+            h_name = h.name if hasattr(h, "name") else (h.get("name", "") if isinstance(h, dict) else "")
+            h_en = getattr(h, "enabled", True) if hasattr(h, "enabled") else (h.get("enabled", True) if isinstance(h, dict) else True)
+            if h_name:
+                cfg_hero_active_map[h_name] = h_en
+
+        for idx, (h_key, h_display, h_icon_path) in enumerate(hero_defs):
+            h_frame = ctk.CTkFrame(card_heroes, fg_color="#18181b", corner_radius=8)
+            h_frame.grid(row=1, column=idx, padx=6, pady=(0, 8), sticky="ew")
+            h_frame.grid_columnconfigure(0, weight=1)
+
+            h_img = self._load_ctk_image(h_icon_path, size=(38, 38))
+            lbl_h_ico = ctk.CTkLabel(h_frame, text="", image=h_img)
+            lbl_h_ico.grid(row=0, column=0, pady=(6, 2))
+
+            is_active = cfg_hero_active_map.get(h_key, True)
+            h_var = ctk.BooleanVar(value=is_active)
+            self.hero_vars[h_key] = h_var
+
+            chk_h = ctk.CTkCheckBox(
+                h_frame,
+                text=h_display,
+                variable=h_var,
+                font=ctk.CTkFont(size=11, weight="bold")
+            )
+            chk_h.grid(row=1, column=0, padx=6, pady=(0, 8))
+
+        # Hero Ability Delay
+        delay_row = ctk.CTkFrame(card_heroes, fg_color="transparent")
+        delay_row.grid(row=2, column=0, columnspan=4, padx=12, pady=(0, 8), sticky="ew")
+        lbl_del = ctk.CTkLabel(delay_row, text="Ability Delay (s):", font=ctk.CTkFont(size=11, weight="bold"))
+        lbl_del.pack(side="left", padx=(0, 6))
+
+        init_delay = getattr(self.config.deployment, "hero_ability_delay_seconds", 6.0)
+        self.ent_army_ability_delay_var = ctk.StringVar(value=f"{init_delay:.1f}".rstrip('0').rstrip('.'))
+        ent_del = ctk.CTkEntry(delay_row, textvariable=self.ent_army_ability_delay_var, width=50, height=24, justify="center")
+        ent_del.pack(side="left", padx=(0, 8))
+
+        lbl_del_hint = ctk.CTkLabel(delay_row, text="Seconds after army drop to click hero ribbon slots and activate abilities.", font=ctk.CTkFont(size=10), text_color="#a1a1aa")
+        lbl_del_hint.pack(side="left")
+
+        # -------------------------------------------------------------
+        # 4. SPELLS (SLOT TRAILING HEROES)
+        # -------------------------------------------------------------
+        card_spells = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
+        card_spells.grid(row=5, column=0, padx=8, pady=(0, 10), sticky="ew")
+        card_spells.grid_columnconfigure(2, weight=1)
+
+        lbl_sp_hdr = ctk.CTkLabel(
+            card_spells,
+            text=safe_text("⚡ Spell Arsenal (Cast Across Base Targets):"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#a855f7"
+        )
+        lbl_sp_hdr.grid(row=0, column=0, columnspan=4, padx=12, pady=(10, 4), sticky="w")
+
+        self.chk_spells_var = ctk.BooleanVar(value=getattr(self.config.deployment, "deploy_spells", True))
+        chk_sp = ctk.CTkCheckBox(card_spells, text="Deploy Spells in Attack", variable=self.chk_spells_var, font=ctk.CTkFont(size=11))
+        chk_sp.grid(row=1, column=0, columnspan=3, padx=12, pady=(0, 6), sticky="w")
+
+        self.lbl_spell_icon = ctk.CTkLabel(card_spells, text="", width=36, height=36)
+        self.lbl_spell_icon.grid(row=2, column=0, padx=(12, 6), pady=(0, 10))
+
+        curr_spell_name = "Earthquake"
+        curr_spell_qty = "11"
+        cfg_spells = getattr(self.config.deployment.army, "spells", [])
+        if cfg_spells and getattr(cfg_spells[0], "name", None):
+            sp_cand = cfg_spells[0].name.replace("_", " ").title()
+            for opt in SPELL_OPTIONS:
+                if opt.lower().replace(" ", "") == sp_cand.lower().replace(" ", ""):
+                    curr_spell_name = opt
+                    break
+            curr_spell_qty = str(getattr(cfg_spells[0], "expected_quantity", 11))
+
+        self.spell_unit_var = ctk.StringVar(value=curr_spell_name)
+        opt_spell = ctk.CTkOptionMenu(
+            card_spells,
+            variable=self.spell_unit_var,
+            values=SPELL_OPTIONS,
+            width=180,
+            height=26,
+            command=lambda v: self._update_spell_icon_preview()
+        )
+        opt_spell.grid(row=2, column=1, padx=6, pady=(0, 10), sticky="w")
+
+        lbl_sp_cnt = ctk.CTkLabel(card_spells, text="Quantity:", font=ctk.CTkFont(size=11))
+        lbl_sp_cnt.grid(row=2, column=2, padx=4, pady=(0, 10), sticky="e")
+
+        self.spell_qty_var = ctk.StringVar(value=curr_spell_qty)
+        ent_sp_q = ctk.CTkEntry(card_spells, textvariable=self.spell_qty_var, width=50, height=26, justify="center")
+        ent_sp_q.grid(row=2, column=3, padx=(4, 12), pady=(0, 10), sticky="w")
+        self._update_spell_icon_preview()
+
+        # -------------------------------------------------------------
+        # 5. SAVE & APPLY BUTTON
+        # -------------------------------------------------------------
+        btn_save = ctk.CTkButton(
+            scroll,
+            text=safe_text("💾 Save & Apply Army Configuration"),
+            height=38,
+            fg_color="#16a34a",
+            hover_color="#15803d",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._save_army_configuration
+        )
+        btn_save.grid(row=6, column=0, padx=8, pady=(4, 16), sticky="ew")
+
+    def _update_troop_icon_preview(self, idx: int) -> None:
+        if 0 <= idx < len(self.troop_unit_vars) and idx < len(self.troop_icon_labels):
+            unit_name = self.troop_unit_vars[idx].get()
+            rel_path = UNIT_ASSET_MAP.get(unit_name)
+            img = self._load_ctk_image(rel_path, size=(30, 30)) if rel_path else None
+            self.troop_icon_labels[idx].configure(image=img)
+
+    def _update_siege_icon_preview(self) -> None:
+        if hasattr(self, "lbl_siege_icon") and hasattr(self, "siege_unit_var"):
+            unit_name = self.siege_unit_var.get()
+            rel_path = UNIT_ASSET_MAP.get(unit_name)
+            img = self._load_ctk_image(rel_path, size=(34, 34)) if rel_path else None
+            self.lbl_siege_icon.configure(image=img)
+
+    def _update_spell_icon_preview(self) -> None:
+        if hasattr(self, "lbl_spell_icon") and hasattr(self, "spell_unit_var"):
+            unit_name = self.spell_unit_var.get()
+            rel_path = UNIT_ASSET_MAP.get(unit_name)
+            img = self._load_ctk_image(rel_path, size=(34, 34)) if rel_path else None
+            self.lbl_spell_icon.configure(image=img)
+
+    def _save_army_configuration(self) -> None:
+        try:
+            from src.persistence.config_manager import (
+                TroopUnitConfig, SiegeUnitConfig, HeroUnitConfig, SpellUnitConfig, ArmyConfig
+            )
+
+            prio_map = {
+                "1st (Drop First)": 1,
+                "2nd (Drop Second)": 2,
+                "3rd (Drop Third)": 3,
+                "4th (Drop Fourth)": 4,
+            }
+            name_norm = {
+                "Valkyrie": "valkyrie",
+                "Super Valkyrie": "super_valkyrie",
+                "Super Wall Breaker": "super_wall_breaker",
+                "Wall Breaker": "wall_breaker",
+                "Sneaky Goblin": "sneaky_goblin",
+                "Healer": "healer",
+                "Electro Dragon": "electro_dragon",
+                "Dragon": "dragon",
+                "Balloon": "balloon",
+                "Root Rider": "root_rider",
+                "Barbarian Squad": "barbarian_squad",
+                "Archer Squad": "archer_squad",
+                "Bowler": "bowler",
+                "Hog Rider": "hog_rider",
+                "Miner": "miner",
+                "Yeti": "yeti",
+                "P.E.K.K.A": "pekka",
+            }
+            troops = []
+            for i in range(len(self.troop_enabled_vars)):
+                en = self.troop_enabled_vars[i].get()
+                uname = self.troop_unit_vars[i].get()
+                prio_str = self.troop_prio_vars[i].get()
+                try:
+                    qty = int(self.troop_qty_vars[i].get())
+                except ValueError:
+                    qty = 10
+                prio = prio_map.get(prio_str, i + 1)
+                norm_name = name_norm.get(uname, uname.lower().replace(" ", "_"))
+                troops.append(TroopUnitConfig(name=norm_name, expected_quantity=qty, priority=prio, enabled=en))
+
+            s_name = self.siege_unit_var.get()
+            s_en = self.chk_siege_var.get()
+            s_norm = s_name.lower().replace(" ", "_")
+            siege = [SiegeUnitConfig(name=s_norm, expected_quantity=1, enabled=s_en)]
+
+            heroes = []
+            for h_key, h_var in self.hero_vars.items():
+                heroes.append(HeroUnitConfig(name=h_key, enabled=h_var.get()))
+            active_hero_count = len([h for h in heroes if h.enabled])
+
+            try:
+                ability_delay = float(self.ent_army_ability_delay_var.get())
+            except ValueError:
+                ability_delay = 6.0
+
+            sp_name = self.spell_unit_var.get()
+            sp_en = self.chk_spells_var.get()
+            try:
+                sp_qty = int(self.spell_qty_var.get())
+            except ValueError:
+                sp_qty = 11
+            sp_norm = sp_name.lower().replace(" ", "_")
+            spells = [SpellUnitConfig(name=sp_norm, expected_quantity=sp_qty, enabled=sp_en)]
+
+            new_army = ArmyConfig(
+                troops=troops,
+                spells=spells,
+                siege=siege,
+                heroes=heroes,
+                clan_castle=False
+            )
+            self.config.deployment.army = new_army
+            self.config.deployment.hero_count = active_hero_count
+            self.config.deployment.hero_ability_delay_seconds = ability_delay
+            self.config.deployment.deploy_siege = s_en
+            self.config.deployment.deploy_spells = sp_en
+
+            self.config_manager.save(self.config)
+
+            if hasattr(self.controller, "state_machine"):
+                self.controller.state_machine.config = self.config
+
+            active_t_names = [t.name for t in troops if t.enabled]
+            self.log_event(f"Army saved: Troops={active_t_names}, Siege={'ON' if s_en else 'OFF'}, Heroes={active_hero_count}, Spells={sp_norm}x{sp_qty}")
+            self.notifier.announce("Army configuration saved and applied", chime="accept")
+        except Exception as e:
+            logger.error(f"Failed to save army configuration: {e}", exc_info=True)
+            self.log_event(f"Error saving army configuration: {e}")
 
     def _toggle_farming_session(self) -> None:
         """Starts or stops farming session for the active village mode."""
@@ -926,8 +1457,9 @@ class DashboardApp(ctk.CTk):
         return lbl_v
 
     def log_event(self, msg: str) -> None:
+        clean_msg = safe_text(msg)
         ts = datetime.now().strftime("%H:%M:%S")
-        self.txt_logs.insert("end", f"[{ts}] {msg}\n")
+        self.txt_logs.insert("end", f"[{ts}] {clean_msg}\n")
         self.txt_logs.see("end")
 
     def _update_fixed_count_visibility(self) -> None:

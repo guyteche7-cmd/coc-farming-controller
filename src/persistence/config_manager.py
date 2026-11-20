@@ -42,32 +42,47 @@ class TargetConfig(BaseModel):
 
 
 class TroopUnitConfig(BaseModel):
-    name: str = "electro_dragon"
-    expected_quantity: int = 16
+    name: str = "valkyrie"
+    expected_quantity: int = 24
+    priority: int = 1
+    enabled: bool = True
     pattern: str = "line_distribute"
 
 
 class SpellUnitConfig(BaseModel):
     name: str = "earthquake"
     expected_quantity: int = 11
+    enabled: bool = True
     pattern: str = "randomized_targets"
 
 
-
 class SiegeUnitConfig(BaseModel):
-    name: str = "battle_blimp"
+    name: str = "siege_barracks"
     expected_quantity: int = 1
+    enabled: bool = True
+
+
+class HeroUnitConfig(BaseModel):
+    name: str = "minion_prince"
+    enabled: bool = True
 
 
 class ArmyConfig(BaseModel):
-    troops: List[TroopUnitConfig] = Field(default_factory=lambda: [TroopUnitConfig()])
-    spells: List[SpellUnitConfig] = Field(default_factory=lambda: [SpellUnitConfig()])
-    siege: List[SiegeUnitConfig] = Field(default_factory=lambda: [SiegeUnitConfig()])
-    heroes: List[dict] = Field(default_factory=lambda: [
-        {"name": "dragon_duke"},
-        {"name": "archer_queen"},
-        {"name": "grand_warden"},
-        {"name": "minion_prince"}
+    troops: List[TroopUnitConfig] = Field(default_factory=lambda: [
+        TroopUnitConfig(name="valkyrie", expected_quantity=24, priority=1, enabled=True),
+        TroopUnitConfig(name="super_wall_breaker", expected_quantity=4, priority=2, enabled=True),
+    ])
+    spells: List[SpellUnitConfig] = Field(default_factory=lambda: [
+        SpellUnitConfig(name="earthquake", expected_quantity=11, enabled=True)
+    ])
+    siege: List[SiegeUnitConfig] = Field(default_factory=lambda: [
+        SiegeUnitConfig(name="siege_barracks", expected_quantity=1, enabled=True)
+    ])
+    heroes: List[HeroUnitConfig] = Field(default_factory=lambda: [
+        HeroUnitConfig(name="minion_prince", enabled=True),
+        HeroUnitConfig(name="archer_queen", enabled=True),
+        HeroUnitConfig(name="grand_warden", enabled=True),
+        HeroUnitConfig(name="barbarian_king", enabled=True),
     ])
     clan_castle: bool = False
 
