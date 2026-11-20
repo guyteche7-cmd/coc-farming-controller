@@ -78,3 +78,12 @@
 - **Auto-Collector**: Captures full-resolution battle and village frames every 5s into `dataset/raw_frames/`.
 - **Pre-Labeling Engine**: Local Florence-2 / template matching script generates standard YOLO `.txt` bounding boxes.
 - **Offline Review Option**: LabelImg / AnyLabeling runs 100% locally on Windows without cloud accounts. Optional Roboflow/CVAT export.
+
+---
+
+## 8. Asset Library & Town Hall 17 Notes
+- **Hero Icons (`assets/heroes/`)**: Sourced directly from in-battle attack ribbon crops for exact aspect ratio matching (King, Queen, Warden, Minion Prince / Royal Champion).
+- **Siege Machines (`assets/siege/`)**: All 8 siege machines cropped from camp screen (Wall Wrecker, Blimp, Slammer, Barracks, Log Launcher, Flame Flinger, Drill, Balloon).
+- **Spells (`assets/spells/`)**: Cropped from spell selection screen (Earthquake, Lightning, Rage, Freeze, Jump, Poison, Haste, Healing, Skeleton).
+- **Troops (`assets/troops/`)**: Super Troops and Regular Elixir troops.
+- **TH17 Update (Nov 16)**: Squad Barracks (Barbarian/Archer Squads) and Heroic Spell placeholders are used until visual assets are exported.
