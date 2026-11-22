@@ -82,16 +82,49 @@ class DeploymentPlanner:
         edge: str = "top",
         tap_delay: float = 0.035,
         hero_delay: float = 0.10,
-        spell_delay: float = 0.05
+        spell_delay: float = 0.05,
+        ribbon_mode: str = "compact",
+        lock_ribbon_mode: bool = True
     ):
         self.edge = "top"
         self.tap_delay = tap_delay
         self.hero_delay = hero_delay
         self.spell_delay = spell_delay
-        self.slot_x_coordinates = list(self.SLOT_X_COORDINATES_COMPACT)
-        self.ribbon_y = self.RIBBON_Y_COMPACT
-        self.RIBBON_Y = self.RIBBON_Y_COMPACT
-        self.bar_mode = "compact"
+        self.lock_ribbon_mode = lock_ribbon_mode
+        self.bar_mode = ribbon_mode.lower() if ribbon_mode in ["compact", "large"] else "compact"
+        self._apply_mode_coordinates()
+
+    def _apply_mode_coordinates(self) -> None:
+        """Applies slot X coordinates and ribbon Y according to active bar_mode."""
+        if self.bar_mode == "large":
+            self.slot_x_coordinates = list(self.SLOT_X_COORDINATES_LARGE)
+            self.ribbon_y = self.RIBBON_Y_LARGE
+            self.RIBBON_Y = self.RIBBON_Y_LARGE
+        else:
+            self.slot_x_coordinates = list(self.SLOT_X_COORDINATES_COMPACT)
+            self.ribbon_y = self.RIBBON_Y_COMPACT
+            self.RIBBON_Y = self.RIBBON_Y_COMPACT
+        DeploymentPlanner.SLOT_X_COORDINATES = self.slot_x_coordinates
+        DeploymentPlanner.RIBBON_Y = self.ribbon_y
+
+    def set_ribbon_mode(self, mode: str, locked: bool = True) -> None:
+        """Explicitly sets and locks ribbon mode ('compact' or 'large')."""
+        m = mode.lower()
+        if m in ("compact", "large"):
+            self.bar_mode = m
+            self.lock_ribbon_mode = locked
+            self._apply_mode_coordinates()
+            logger.info(f"[DEPLOYMENT PLANNER] Set ribbon mode to '{self.bar_mode.upper()}' (locked={self.lock_ribbon_mode})")
+
+    def lock_calibration(self) -> None:
+        """Locks ribbon mode to prevent scenery color variations from flipping slot coordinates."""
+        self.lock_ribbon_mode = True
+        logger.info(f"[DEPLOYMENT PLANNER] Ribbon calibration LOCKED to '{self.bar_mode.upper()}'.")
+
+    def unlock_calibration(self) -> None:
+        """Unlocks ribbon mode for dynamic auto-calibration."""
+        self.lock_ribbon_mode = False
+        logger.info("[DEPLOYMENT PLANNER] Ribbon calibration UNLOCKED.")
 
     def get_slot_x(self, slot_idx: int) -> float:
         """Returns the normalized X coordinate for any slot index on the bottom ribbon."""
@@ -102,11 +135,20 @@ class DeploymentPlanner:
         base = coords[0] if coords else 0.1835
         return min(0.980, base + slot_idx * step)
 
-    def auto_calibrate_ribbon(self, frame_bgr) -> str:
+    def auto_calibrate_ribbon(self, frame_bgr, force: bool = False) -> str:
         """
         Dynamically detects whether the game uses Compact/Reduced or Large deployment bar size,
         measures ribbon vertical position and slot pitch, and calibrates slot X/Y coordinates.
+        If self.lock_ribbon_mode is True and not force, preserves the locked bar mode to prevent
+        scenery variations (such as beach shores, snow, or dark rocks) from disrupting deployment.
         """
+        if self.lock_ribbon_mode and not force:
+            logger.debug(
+                f"[DEPLOYMENT PLANNER] Ribbon mode is LOCKED to '{self.bar_mode.upper()}'. "
+                f"Skipping dynamic mode recalculation to prevent scenery interference."
+            )
+            return self.bar_mode
+
         import cv2
         import numpy as np
 
@@ -117,7 +159,11 @@ class DeploymentPlanner:
         scan_y = int(0.908 * h)
 
         def is_bg(b, g, r):
-            return (r > 130 and b < 80) or (b < 85 and g < 75 and r < 60) or (b < 45 and g < 45 and r < 45)
+            # 1. Grass / Dark earth / Red cancel button area
+            is_green_or_dark = (r > 130 and b < 80) or (b < 85 and g < 75 and r < 60) or (b < 45 and g < 45 and r < 45)
+            # 2. Sandy / Rocky beach shoreline (low-saturation earth tones, e.g. b=121, g=105, r=89)
+            is_beach_sand = (abs(int(r) - int(g)) < 30 and abs(int(g) - int(b)) < 30 and max(r, g, b) < 160)
+            return is_green_or_dark or is_beach_sand
 
         card_0_x = None
         for x in range(int(0.08 * w), int(0.30 * w)):

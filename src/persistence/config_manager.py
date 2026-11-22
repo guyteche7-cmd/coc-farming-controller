@@ -95,6 +95,10 @@ class DeploymentConfig(BaseModel):
     tap_delay_seconds: float = 0.05
     hero_tap_delay_seconds: float = 0.3
     spell_tap_delay_seconds: float = 0.2
+    ribbon_mode: str = "compact"  # "compact" (reduced in-game bar size) or "large" (default bar)
+    lock_ribbon_mode: bool = True  # Locks slot coordinates to prevent scenery interference
+    verify_first_attack: bool = True  # Whether to prompt verification on first attack / army change
+    deployment_verified: bool = True  # Verification confirmed status
     army: ArmyConfig = Field(default_factory=ArmyConfig)
     hero_count: int = 2  # -1 for Auto-Detect, or 0, 1, 2, 3, 4
     hero_ability_delay_seconds: float = 6.0  # Reduced to 6s

@@ -235,7 +235,8 @@ class DashboardApp(ctk.CTk):
             window_bind_callback=lambda: self.after(0, self._bind_game_window_interactive),
             hotkey_start_callback=lambda: self.after(0, self._toggle_farming_session),
             hotkey_pause_callback=lambda: self.after(0, self._handle_pause_action),
-            hotkey_stop_callback=lambda: self.after(0, self._handle_stop_action)
+            hotkey_stop_callback=lambda: self.after(0, self._handle_stop_action),
+            verification_callback=lambda payload: self.after(0, lambda: self._show_deployment_verification_prompt(payload))
         )
 
         self._build_ui()
@@ -1015,10 +1016,92 @@ class DashboardApp(ctk.CTk):
         lbl_desc.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="w")
 
         # -------------------------------------------------------------
+        # 0. DEPLOYMENT BAR SIZE & CALIBRATION LOCK
+        # -------------------------------------------------------------
+        card_ribbon = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
+        card_ribbon.grid(row=2, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_ribbon.grid_columnconfigure(0, weight=1)
+        card_ribbon.grid_columnconfigure(1, weight=1)
+
+        r_hdr_frame = ctk.CTkFrame(card_ribbon, fg_color="transparent")
+        r_hdr_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=(8, 4), sticky="ew")
+        r_hdr_frame.grid_columnconfigure(0, weight=1)
+
+        lbl_r_hdr = ctk.CTkLabel(
+            r_hdr_frame,
+            text=safe_text("📐 Deployment Ribbon Calibration & Bar Size:"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#38bdf8"
+        )
+        lbl_r_hdr.pack(side="left")
+
+        curr_mode = getattr(self.config.deployment, "ribbon_mode", "compact").lower()
+        is_locked = getattr(self.config.deployment, "lock_ribbon_mode", True)
+        is_verified = getattr(self.config.deployment, "deployment_verified", True)
+
+        status_text = f"🔒 Locked ({curr_mode.title()} Bar)" if is_locked else "🔓 Dynamic Auto-Detect"
+        status_color = "#22c55e" if is_locked else "#f59e0b"
+
+        self.lbl_ribbon_status = ctk.CTkLabel(
+            r_hdr_frame,
+            text=status_text,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color=status_color,
+            fg_color="#18181b",
+            corner_radius=6,
+            padx=8,
+            pady=2
+        )
+        self.lbl_ribbon_status.pack(side="right")
+
+        # Row 1: Mode selector, Lock checkbox, and Test Verify button
+        r_ctrl_frame = ctk.CTkFrame(card_ribbon, fg_color="transparent")
+        r_ctrl_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=(2, 8), sticky="ew")
+
+        lbl_mode_desc = ctk.CTkLabel(
+            r_ctrl_frame,
+            text="In-Game Bar Size:",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color="#e2e8f0"
+        )
+        lbl_mode_desc.pack(side="left", padx=(0, 8))
+
+        mode_disp_val = "Compact (Reduced Bar)" if curr_mode == "compact" else "Large (Standard Bar)"
+        self.seg_ribbon_mode = ctk.CTkSegmentedButton(
+            r_ctrl_frame,
+            values=["Compact (Reduced Bar)", "Large (Standard Bar)"],
+            command=self._on_gui_ribbon_mode_changed
+        )
+        self.seg_ribbon_mode.set(mode_disp_val)
+        self.seg_ribbon_mode.pack(side="left", padx=(0, 12))
+
+        self.chk_lock_ribbon_var = ctk.BooleanVar(value=is_locked)
+        self.chk_lock_ribbon = ctk.CTkCheckBox(
+            r_ctrl_frame,
+            text="Lock Calibration (Prevents scenery interference)",
+            variable=self.chk_lock_ribbon_var,
+            font=ctk.CTkFont(size=11),
+            command=self._on_gui_toggle_lock_ribbon
+        )
+        self.chk_lock_ribbon.pack(side="left", padx=(0, 12))
+
+        self.btn_verify_req = ctk.CTkButton(
+            r_ctrl_frame,
+            text="🧪 Verify On Next Attack",
+            width=150,
+            height=26,
+            fg_color="#334155",
+            hover_color="#475569",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            command=self._on_gui_request_verification
+        )
+        self.btn_verify_req.pack(side="right")
+
+        # -------------------------------------------------------------
         # 1. DYNAMIC TROOPS SQUAD & HORIZONTAL SELECTOR RIBBON
         # -------------------------------------------------------------
         card_troops = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_troops.grid(row=2, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_troops.grid(row=3, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_troops.grid_columnconfigure(0, weight=1)
 
         t_hdr_frame = ctk.CTkFrame(card_troops, fg_color="transparent")
@@ -1113,7 +1196,7 @@ class DashboardApp(ctk.CTk):
         # 2. SIEGE MACHINE (HORIZONTAL QUICK SELECTOR & DEPLOYMENT SLOT)
         # -------------------------------------------------------------
         card_siege = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_siege.grid(row=3, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_siege.grid(row=4, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_siege.grid_columnconfigure(0, weight=1)
 
         s_hdr_frame = ctk.CTkFrame(card_siege, fg_color="transparent")
@@ -1215,7 +1298,7 @@ class DashboardApp(ctk.CTk):
         # 3. HEROES (TH17 COMPLETE 6 HERO ROSTER, MAX 4 ACTIVE)
         # -------------------------------------------------------------
         card_heroes = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_heroes.grid(row=4, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_heroes.grid(row=5, column=0, padx=6, pady=(0, 8), sticky="ew")
         for c_i in range(6):
             card_heroes.grid_columnconfigure(c_i, weight=1)
 
@@ -1302,7 +1385,7 @@ class DashboardApp(ctk.CTk):
         # 4. SPELLS (DYNAMIC SPELL ARSENAL WITH HORIZONTAL QUICK SELECT)
         # -------------------------------------------------------------
         card_spells = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_spells.grid(row=5, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_spells.grid(row=6, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_spells.grid_columnconfigure(0, weight=1)
 
         sp_hdr_frame = ctk.CTkFrame(card_spells, fg_color="transparent")
@@ -1405,7 +1488,7 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._save_army_configuration
         )
-        btn_save.grid(row=6, column=0, padx=6, pady=(4, 12), sticky="ew")
+        btn_save.grid(row=7, column=0, padx=6, pady=(4, 12), sticky="ew")
 
     # -----------------------------------------------------------------
     # DYNAMIC TROOP, SIEGE & SPELL MANAGEMENT
@@ -1943,9 +2026,143 @@ class DashboardApp(ctk.CTk):
             active_sp_names = [f"{sp.name}x{sp.expected_quantity}" for sp in spells if sp.enabled]
             self.log_event(f"Army saved: Troops={active_t_names}, Siege={'ON' if s_en else 'OFF'}, Heroes={active_hero_count}, Spells={active_sp_names}")
             self.notifier.announce("Army configuration saved and applied", chime="accept")
+
+            # When army changes, schedule first-attack verification prompt
+            if hasattr(self, "controller") and self.controller:
+                self.controller.request_deployment_verification()
+            if hasattr(self, "lbl_ribbon_status"):
+                self.lbl_ribbon_status.configure(text="🧪 Verification Scheduled (Next Attack)", text_color="#38bdf8")
         except Exception as e:
             logger.error(f"Failed to save army configuration: {e}", exc_info=True)
             self.log_event(f"Error saving army configuration: {e}")
+
+    def _on_gui_ribbon_mode_changed(self, mode_str: str) -> None:
+        mode = "compact" if "compact" in mode_str.lower() else "large"
+        locked = self.chk_lock_ribbon_var.get()
+        self.controller.set_ribbon_mode(mode, locked=locked)
+        self._update_ribbon_status_ui(locked, mode)
+        self.log_event(f"Deployment ribbon mode changed to: {mode.upper()} (Locked={locked})")
+
+    def _on_gui_toggle_lock_ribbon(self) -> None:
+        locked = self.chk_lock_ribbon_var.get()
+        mode = "compact" if "compact" in self.seg_ribbon_mode.get().lower() else "large"
+        self.controller.set_ribbon_mode(mode, locked=locked)
+        self._update_ribbon_status_ui(locked, mode)
+        self.log_event(f"Ribbon calibration lock set to: {locked}")
+
+    def _on_gui_request_verification(self) -> None:
+        self.controller.request_deployment_verification()
+        if hasattr(self, "lbl_ribbon_status"):
+            self.lbl_ribbon_status.configure(
+                text="🧪 Verification Pending Next Attack",
+                text_color="#38bdf8"
+            )
+        self.log_event("Verification scheduled: The bot will pause after the next battle to confirm deployment.")
+        self.notifier.announce("Verification scheduled for next battle.", chime="ok")
+
+    def _update_ribbon_status_ui(self, locked: bool, mode: str) -> None:
+        if not hasattr(self, "lbl_ribbon_status"):
+            return
+        if locked:
+            disp = f"🔒 Locked ({mode.title()} Bar)"
+            color = "#22c55e"
+        else:
+            disp = "🔓 Dynamic Auto-Detect"
+            color = "#f59e0b"
+        self.lbl_ribbon_status.configure(text=disp, text_color=color)
+
+    def _show_deployment_verification_prompt(self, payload: dict) -> None:
+        """
+        Displays a user confirmation modal dialog after an attack to verify if troops,
+        siege, heroes, and spells deployed properly. If confirmed, locks calibration.
+        """
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Attack Completed — Deployment Verification")
+        dialog.geometry("560x320")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+
+        dialog.update_idletasks()
+        try:
+            x = self.winfo_x() + (self.winfo_width() - 560) // 2
+            y = self.winfo_y() + (self.winfo_height() - 320) // 2
+            dialog.geometry(f"+{x}+{y}")
+        except Exception:
+            pass
+
+        content = ctk.CTkFrame(dialog, fg_color="#18181b", corner_radius=10)
+        content.pack(fill="both", expand=True, padx=12, pady=12)
+
+        lbl_title = ctk.CTkLabel(
+            content,
+            text=safe_text("⚔️ First Attack Completed — Verify Deployment"),
+            font=ctk.CTkFont(size=15, weight="bold"),
+            text_color="#38bdf8"
+        )
+        lbl_title.pack(pady=(12, 6))
+
+        outcome = payload.get("outcome", "BATTLE")
+        loot_g = payload.get("actual_gold", 0)
+        loot_e = payload.get("actual_elixir", 0)
+        mode = payload.get("ribbon_mode", "compact").upper()
+
+        info_text = (
+            f"Battle Outcome: {outcome} | Loot Collected: {loot_g:,} Gold, {loot_e:,} Elixir\n"
+            f"Active Deployment Bar Mode: {mode}\n\n"
+            "Did ALL units deploy correctly (Troops, Siege, King, Queen, Warden, Duke, Spells)?\n"
+            "• If YES: Deployment slot coordinates will be permanently locked so the bot\n"
+            "  deploys in this exact pattern every single battle without scenery errors.\n"
+            "• If NO: The session remains paused so you can adjust settings or toggle bar size."
+        )
+
+        lbl_msg = ctk.CTkLabel(
+            content,
+            text=info_text,
+            font=ctk.CTkFont(size=11),
+            text_color="#e2e8f0",
+            justify="center"
+        )
+        lbl_msg.pack(padx=16, pady=(0, 16))
+
+        btn_box = ctk.CTkFrame(content, fg_color="transparent")
+        btn_box.pack(pady=(6, 12))
+
+        def on_confirm_yes():
+            self.controller.confirm_deployment_verification(True)
+            self._update_ribbon_status_ui(True, "compact")
+            self.log_event("Deployment verified and locked by user. Farming resumed.")
+            dialog.destroy()
+
+        def on_confirm_no():
+            self.controller.confirm_deployment_verification(False)
+            self.log_event("User reported deployment issue. Farming remains paused for inspection.")
+            self.main_tabview.set(safe_text("⚔️ Army Setup & Sequencer"))
+            dialog.destroy()
+
+        btn_yes = ctk.CTkButton(
+            btn_box,
+            text="✓ Yes, Deployed Correctly (Lock & Resume)",
+            width=230,
+            height=34,
+            fg_color="#16a34a",
+            hover_color="#15803d",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=on_confirm_yes
+        )
+        btn_yes.pack(side="left", padx=8)
+
+        btn_no = ctk.CTkButton(
+            btn_box,
+            text="✗ No, Issue Detected (Keep Paused)",
+            width=210,
+            height=34,
+            fg_color="#dc2626",
+            hover_color="#b91c1c",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=on_confirm_no
+        )
+        btn_no.pack(side="left", padx=8)
 
     def _toggle_farming_session(self) -> None:
         """Starts or stops farming session for the active village mode."""

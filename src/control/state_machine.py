@@ -51,7 +51,9 @@ class StateMachine:
         database: Database,
         session_id: int,
         calibrator=None,
-        state_change_callback: Optional[Callable[[UIState, GameState], None]] = None
+        state_change_callback: Optional[Callable[[UIState, GameState], None]] = None,
+        on_verification_prompt: Optional[Callable[[dict], None]] = None,
+        config_manager: Optional[Any] = None
     ):
         self.config = config
         self.state_detector = state_detector
@@ -68,6 +70,13 @@ class StateMachine:
         self.session_id = session_id
         self.calibrator = calibrator
         self.state_change_callback = state_change_callback
+        self.on_verification_prompt = on_verification_prompt
+        self.config_manager = config_manager
+
+        # Deployment verification tracking
+        self.verify_first_attack = getattr(self.config.deployment, "verify_first_attack", True)
+        self.deployment_verified = getattr(self.config.deployment, "deployment_verified", False)
+        self.awaiting_deployment_verification = False
 
         self.current_state = UIState.UNKNOWN
         self.last_announced_state = UIState.UNKNOWN
@@ -113,6 +122,61 @@ class StateMachine:
         self.current_gold: int = 0
         self.current_elixir: int = 0
         self.current_dark_elixir: int = 0
+
+    def pause(self, reason: str = "") -> None:
+        """Pauses execution of the state machine."""
+        self.is_paused = True
+        logger.info(f"[STATE MACHINE] Session PAUSED. Reason: {reason}")
+        if self.state_change_callback:
+            try:
+                self.state_change_callback(UIState.PAUSED, GameState(ui_state=UIState.PAUSED))
+            except Exception:
+                pass
+
+    def resume(self, reason: str = "") -> None:
+        """Resumes execution of the state machine."""
+        self.is_paused = False
+        logger.info(f"[STATE MACHINE] Session RESUMED. Reason: {reason}")
+        if self.state_change_callback:
+            try:
+                self.state_change_callback(self.current_state, GameState(ui_state=self.current_state))
+            except Exception:
+                pass
+
+    def confirm_deployment_verification(self, is_correct: bool, new_mode: Optional[str] = None) -> None:
+        """
+        Processes user verification response:
+        If is_correct is True: locks calibration permanently, updates config, and resumes farming.
+        If is_correct is False: optionally switches mode (e.g. to 'large' or 'compact') and leaves paused for adjustments.
+        """
+        if is_correct:
+            self.deployment_verified = True
+            self.awaiting_deployment_verification = False
+            self.deployment_planner.lock_calibration()
+            if hasattr(self.config, "deployment"):
+                self.config.deployment.deployment_verified = True
+                self.config.deployment.ribbon_mode = self.deployment_planner.bar_mode
+                self.config.deployment.lock_ribbon_mode = True
+            if hasattr(self, "config_manager") and self.config_manager:
+                try:
+                    self.config_manager.save_config(self.config)
+                except Exception as e:
+                    logger.warning(f"Could not persist config on verification: {e}")
+            logger.info(f"[DEPLOYMENT VERIFICATION] Deployment confirmed by user! Locked to '{self.deployment_planner.bar_mode.upper()}'.")
+            self.notifier.announce(f"Deployment locked to {self.deployment_planner.bar_mode.upper()} mode. Resuming farming.", chime="accept")
+            self.resume(reason="Deployment verified and locked by user")
+        else:
+            if new_mode:
+                self.deployment_planner.set_ribbon_mode(new_mode, locked=True)
+                if hasattr(self.config, "deployment"):
+                    self.config.deployment.ribbon_mode = new_mode
+                if hasattr(self, "config_manager") and self.config_manager:
+                    try:
+                        self.config_manager.save_config(self.config)
+                    except Exception as e:
+                        logger.warning(f"Could not persist config on verification: {e}")
+            logger.info("[DEPLOYMENT VERIFICATION] User reported deployment issues. Session remains paused.")
+            self.notifier.announce("Deployment marked as incorrect. Please adjust settings before resuming.", chime="error")
 
 
     def step(self, frame=None) -> UIState:
@@ -1294,6 +1358,33 @@ class StateMachine:
         self.notifier.announce(msg, chime="victory", toast_title="Attack Completed!")
         self.last_announced_state = outcome_state
         self._click_action_point("RETURN_HOME_BUTTON", delay_after=2.0, reason="Return to Home Village after battle")
+
+        # First-Attack Deployment Verification Check (Locks deployment slot pattern if confirmed)
+        if self.verify_first_attack and not self.deployment_verified:
+            logger.info("[DEPLOYMENT VERIFICATION] Attack complete! Pausing session to verify army deployment.")
+            self.awaiting_deployment_verification = True
+            verification_payload = {
+                "session_id": self.session_id,
+                "attack_number": self.attacks_completed,
+                "outcome": outcome,
+                "actual_gold": actual_gold,
+                "actual_elixir": actual_elixir,
+                "actual_dark_elixir": actual_dark_elixir,
+                "ribbon_mode": getattr(self.deployment_planner, "bar_mode", "compact"),
+                "hero_slots": self.current_army_layout.hero_slots if hasattr(self, "current_army_layout") and self.current_army_layout else [],
+                "verified_screenshot": verified_fp if 'verified_fp' in locals() else None
+            }
+            self.pause(reason="First attack complete! Please verify army deployment in the app.")
+            self.notifier.announce(
+                "First attack complete! Please verify army deployment.",
+                chime="ok",
+                toast_title="Deployment Verification Required"
+            )
+            if self.on_verification_prompt:
+                try:
+                    self.on_verification_prompt(verification_payload)
+                except Exception as e:
+                    logger.warning(f"Error in on_verification_prompt callback: {e}")
 
     def _maybe_collect_dataset_frame(self, frame_bgr, state: UIState):
         """Periodically collects raw high-resolution game frames for offline YOLO model training."""

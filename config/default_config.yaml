@@ -31,11 +31,15 @@ deployment:
   tap_delay_seconds: 0.05
   hero_tap_delay_seconds: 0.3
   spell_tap_delay_seconds: 0.2
+  ribbon_mode: compact
+  lock_ribbon_mode: true
+  verify_first_attack: true
+  deployment_verified: true
   army:
     troops:
     - name: valkyrie
       expected_quantity: 44
-      priority: 2
+      priority: 1
       enabled: true
       pattern: line_distribute
     spells:

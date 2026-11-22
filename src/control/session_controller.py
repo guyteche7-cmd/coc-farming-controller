@@ -42,7 +42,8 @@ class SessionController:
         window_bind_callback: Optional[Callable[[], None]] = None,
         hotkey_start_callback: Optional[Callable[[], None]] = None,
         hotkey_pause_callback: Optional[Callable[[], None]] = None,
-        hotkey_stop_callback: Optional[Callable[[], None]] = None
+        hotkey_stop_callback: Optional[Callable[[], None]] = None,
+        verification_callback: Optional[Callable[[dict], None]] = None
     ):
         self.config_manager = config_manager
         self.config: AppConfig = config_manager.config
@@ -53,6 +54,7 @@ class SessionController:
         self.hotkey_start_callback = hotkey_start_callback
         self.hotkey_pause_callback = hotkey_pause_callback
         self.hotkey_stop_callback = hotkey_stop_callback
+        self.verification_callback = verification_callback
 
         self.session_id = str(uuid.uuid4())[:8]
         self.is_running = False
@@ -303,11 +305,15 @@ class SessionController:
         target_evaluator    = TargetEvaluator(self.config.target)
         exit_evaluator      = BattleExitEvaluator(self.config.exit)
         wall_evaluator      = WallEvaluator(self.config.walls)
+        ribbon_m = getattr(self.config.deployment, "ribbon_mode", "compact")
+        lock_ribbon = getattr(self.config.deployment, "lock_ribbon_mode", True)
         deployment_planner  = DeploymentPlanner(
             edge=self.config.deployment.selected_edge,
             tap_delay=self.config.deployment.tap_delay_seconds,
             hero_delay=self.config.deployment.hero_tap_delay_seconds,
             spell_delay=self.config.deployment.spell_tap_delay_seconds,
+            ribbon_mode=ribbon_m,
+            lock_ribbon_mode=lock_ribbon,
         )
         wall_planner        = WallPlanner(batch_enabled=self.config.walls.prefer_batch_selection)
 
@@ -333,6 +339,8 @@ class SessionController:
             session_id=self.session_id,
             calibrator=self.calibrator,
             state_change_callback=self.state_callback,
+            on_verification_prompt=self.verification_callback,
+            config_manager=self.config_manager,
         )
         # Attach wall_evaluator separately (used in home state handler)
         self.state_machine.wall_evaluator = wall_evaluator
@@ -437,6 +445,41 @@ class SessionController:
             self.notifier.announce("Farming paused", chime="skip", toast_title="Farming Paused")
         else:
             self.notifier.announce("Farming resumed", chime="accept", toast_title="Farming Resumed")
+
+    def confirm_deployment_verification(self, is_correct: bool, new_mode: Optional[str] = None) -> None:
+        """Proxies deployment verification confirmation to active state machine."""
+        if hasattr(self, "state_machine") and self.state_machine:
+            self.state_machine.confirm_deployment_verification(is_correct, new_mode=new_mode)
+            self.is_paused = self.state_machine.is_paused
+        else:
+            # Session not running, update config directly
+            if hasattr(self.config, "deployment"):
+                if is_correct:
+                    self.config.deployment.deployment_verified = True
+                    self.config.deployment.lock_ribbon_mode = True
+                if new_mode:
+                    self.config.deployment.ribbon_mode = new_mode
+            self.config_manager.save_config(self.config)
+
+    def request_deployment_verification(self) -> None:
+        """Forces verification prompt on next attack."""
+        if hasattr(self.config, "deployment"):
+            self.config.deployment.verify_first_attack = True
+            self.config.deployment.deployment_verified = False
+            self.config_manager.save_config(self.config)
+        if hasattr(self, "state_machine") and self.state_machine:
+            self.state_machine.verify_first_attack = True
+            self.state_machine.deployment_verified = False
+        logger.info("[DEPLOYMENT VERIFICATION] Deployment verification will be requested after next attack.")
+
+    def set_ribbon_mode(self, mode: str, locked: bool = True) -> None:
+        """Updates ribbon mode in config and active planner."""
+        if hasattr(self.config, "deployment"):
+            self.config.deployment.ribbon_mode = mode
+            self.config.deployment.lock_ribbon_mode = locked
+            self.config_manager.save_config(self.config)
+        if hasattr(self, "state_machine") and self.state_machine:
+            self.state_machine.deployment_planner.set_ribbon_mode(mode, locked=locked)
 
     def stop_session(self) -> None:
         """Stops the farming session immediately with voice feedback."""

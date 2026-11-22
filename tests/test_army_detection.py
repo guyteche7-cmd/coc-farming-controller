@@ -152,3 +152,28 @@ class TestArmyDetection:
         assert 0.365 <= queen_x <= 0.395, f"Archer Queen X {queen_x} out of compact range"
         # Slot 0 (Troops) must be >= 0.170 (not old 0.106)
         assert planner.get_slot_x(0) >= 0.170, f"Slot 0 X {planner.get_slot_x(0)} should be >= 0.170"
+
+    def test_locked_ribbon_mode_prevents_beach_shore_scenery_flip(self):
+        """
+        Verifies that sandy beach shorelines at the bottom-left corner
+        do NOT cause DeploymentPlanner to falsely flip to LARGE mode.
+        """
+        import numpy as np
+
+        planner = DeploymentPlanner(ribbon_mode="compact", lock_ribbon_mode=True)
+        h, w = 575, 1024
+        # Create frame simulating the exact beach scenery from Attack 2:
+        # BGR [121, 105, 89] sandy shoreline in bottom left
+        frame = np.full((h, w, 3), [121, 105, 89], dtype=np.uint8)
+
+        # 1. When locked, auto_calibrate_ribbon strictly preserves compact mode
+        mode = planner.auto_calibrate_ribbon(frame)
+        assert mode == "compact"
+        assert planner.bar_mode == "compact"
+        assert planner.get_slot_x(3) == planner.SLOT_X_COORDINATES_COMPACT[3]
+
+        # 2. Even when unlocked, improved is_bg recognizes sandy earth tones as background
+        planner.unlock_calibration()
+        mode_unlocked = planner.auto_calibrate_ribbon(frame)
+        assert mode_unlocked == "compact"
+        assert planner.bar_mode == "compact"
