@@ -12,8 +12,8 @@ window:
 target:
   expression: gold >= 1000000 OR gold + elixir >= 1500000
   match_mode: OR
-  watch_gold: false
-  min_gold: 1200000
+  watch_gold: true
+  min_gold: 600000
   watch_elixir: true
   min_elixir: 600000
   watch_dark_elixir: false
@@ -34,12 +34,7 @@ deployment:
   army:
     troops:
     - name: valkyrie
-      expected_quantity: 24
-      priority: 1
-      enabled: true
-      pattern: line_distribute
-    - name: super_wall_breaker
-      expected_quantity: 4
+      expected_quantity: 44
       priority: 2
       enabled: true
       pattern: line_distribute
@@ -60,11 +55,11 @@ deployment:
     - name: grand_warden
       enabled: true
     - name: royal_champion
-      enabled: true
+      enabled: false
     - name: minion_prince
       enabled: false
     - name: dragon_duke
-      enabled: false
+      enabled: true
     clan_castle: false
   hero_count: 4
   hero_ability_delay_seconds: 6.0

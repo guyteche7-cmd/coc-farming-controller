@@ -61,17 +61,113 @@ class DeploymentAction(BaseModel):
 class DeploymentPlanner:
     """Universal direct single-point deployment planner with adaptive directional probing."""
 
-    # Precise slot center coordinates from real LDPlayer screenshots (Supports up to 14 slots)
-    SLOT_X_COORDINATES = [
+    # Compact Ribbon for reduced in-game deployment bar setting (Matches user settings)
+    SLOT_X_COORDINATES_COMPACT = [
+        0.1835, 0.2486, 0.3136, 0.3787, 0.4438, 0.5088, 0.5739, 0.6390, 0.7041, 0.7692, 0.8343, 0.8994, 0.9500, 0.9800
+    ]
+    RIBBON_Y_COMPACT = 0.908
+
+    # Standard Large Ribbon (Default Clash of Clans bar size)
+    SLOT_X_COORDINATES_LARGE = [
         0.106, 0.185, 0.265, 0.345, 0.425, 0.505, 0.585, 0.665, 0.745, 0.825, 0.905, 0.965, 0.980, 0.990
     ]
-    RIBBON_Y = 0.900
+    RIBBON_Y_LARGE = 0.900
+
+    # Backwards-compatible active defaults (Primary default is COMPACT to match current game setting)
+    SLOT_X_COORDINATES = list(SLOT_X_COORDINATES_COMPACT)
+    RIBBON_Y = RIBBON_Y_COMPACT
+
+    def __init__(
+        self,
+        edge: str = "top",
+        tap_delay: float = 0.035,
+        hero_delay: float = 0.10,
+        spell_delay: float = 0.05
+    ):
+        self.edge = "top"
+        self.tap_delay = tap_delay
+        self.hero_delay = hero_delay
+        self.spell_delay = spell_delay
+        self.slot_x_coordinates = list(self.SLOT_X_COORDINATES_COMPACT)
+        self.ribbon_y = self.RIBBON_Y_COMPACT
+        self.RIBBON_Y = self.RIBBON_Y_COMPACT
+        self.bar_mode = "compact"
 
     def get_slot_x(self, slot_idx: int) -> float:
         """Returns the normalized X coordinate for any slot index on the bottom ribbon."""
-        if 0 <= slot_idx < len(self.SLOT_X_COORDINATES):
-            return self.SLOT_X_COORDINATES[slot_idx]
-        return min(0.965, 0.106 + slot_idx * 0.080)
+        coords = getattr(self, "slot_x_coordinates", self.SLOT_X_COORDINATES)
+        if 0 <= slot_idx < len(coords):
+            return coords[slot_idx]
+        step = 0.0651 if (len(coords) > 1 and coords[0] > 0.14) else 0.080
+        base = coords[0] if coords else 0.1835
+        return min(0.980, base + slot_idx * step)
+
+    def auto_calibrate_ribbon(self, frame_bgr) -> str:
+        """
+        Dynamically detects whether the game uses Compact/Reduced or Large deployment bar size,
+        measures ribbon vertical position and slot pitch, and calibrates slot X/Y coordinates.
+        """
+        import cv2
+        import numpy as np
+
+        if frame_bgr is None or frame_bgr.size == 0:
+            return self.bar_mode
+
+        h, w = frame_bgr.shape[:2]
+        scan_y = int(0.908 * h)
+
+        def is_bg(b, g, r):
+            return (r > 130 and b < 80) or (b < 85 and g < 75 and r < 60) or (b < 45 and g < 45 and r < 45)
+
+        card_0_x = None
+        for x in range(int(0.08 * w), int(0.30 * w)):
+            b, g, r = frame_bgr[scan_y, x]
+            if not is_bg(b, g, r):
+                window = [is_bg(*frame_bgr[scan_y, x + i]) for i in range(min(6, w - x))]
+                if not any(window):
+                    card_0_x = x
+                    break
+
+        try:
+            ry1, ry2 = int(0.80 * h), int(0.99 * h)
+            rx1, rx2 = int(0.12 * w), int(0.70 * w)
+            roi = frame_bgr[ry1:ry2, rx1:rx2]
+            gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+            sobely = cv2.Sobel(gray_roi, cv2.CV_64F, 0, 1, ksize=3)
+            edge_y = np.mean(np.abs(sobely), axis=1)
+            half_roi = int(roi.shape[0] * 0.5)
+            top_offset = int(np.argmax(edge_y[5:half_roi])) + 5
+            card_top_y = ry1 + top_offset
+            bot_offset = int(np.argmax(edge_y[half_roi:])) + half_roi
+            card_bot_y = ry1 + bot_offset
+            measured_ribbon_y = (card_top_y + card_bot_y) / 2.0 / h
+            if 0.880 <= measured_ribbon_y <= 0.940:
+                self.ribbon_y = round(measured_ribbon_y, 4)
+                self.RIBBON_Y = self.ribbon_y
+        except Exception:
+            pass
+
+        if card_0_x is not None and (card_0_x / w) < 0.14:
+            self.bar_mode = "large"
+            self.slot_x_coordinates = list(self.SLOT_X_COORDINATES_LARGE)
+            if not hasattr(self, "ribbon_y") or self.ribbon_y == self.RIBBON_Y_COMPACT:
+                self.ribbon_y = self.RIBBON_Y_LARGE
+                self.RIBBON_Y = self.RIBBON_Y_LARGE
+        else:
+            self.bar_mode = "compact"
+            self.slot_x_coordinates = list(self.SLOT_X_COORDINATES_COMPACT)
+            if not hasattr(self, "ribbon_y") or self.ribbon_y == self.RIBBON_Y_LARGE:
+                self.ribbon_y = self.RIBBON_Y_COMPACT
+                self.RIBBON_Y = self.RIBBON_Y_COMPACT
+
+        DeploymentPlanner.SLOT_X_COORDINATES = self.slot_x_coordinates
+        DeploymentPlanner.RIBBON_Y = self.ribbon_y
+
+        logger.info(
+            f"[DEPLOYMENT PLANNER] Calibrated ribbon mode: {self.bar_mode.upper()} "
+            f"(ribbon_y={self.ribbon_y:.3f}, Card 0 x={self.get_slot_x(0):.4f})"
+        )
+        return self.bar_mode
 
     # Primary target deploy point from user screenshot (Right of 'Battle ends in:' on top grass)
     TARGET_DEPLOY_X = 0.6055
@@ -102,18 +198,6 @@ class DeploymentPlanner:
         (0.4653, 0.5036),  # 11. Bottom-center core
     ]
 
-    def __init__(
-        self,
-        edge: str = "top",
-        tap_delay: float = 0.035,
-        hero_delay: float = 0.10,
-        spell_delay: float = 0.05
-    ):
-        self.edge = "top"
-        self.tap_delay = tap_delay
-        self.hero_delay = hero_delay
-        self.spell_delay = spell_delay
-
     def get_randomized_spell_points(self) -> List[Tuple[float, float]]:
         """Returns the 11 earthquake spell target points in randomized/shuffled order with micro-jitter."""
         import random
@@ -143,18 +227,26 @@ class DeploymentPlanner:
         """
         import numpy as np
 
+        # 1. Dynamically calibrate ribbon bar size from incoming frame
+        if frame_bgr is not None and frame_bgr.size > 0:
+            self.auto_calibrate_ribbon(frame_bgr)
+
         occupied = []
+        active_coords = getattr(self, "slot_x_coordinates", self.SLOT_X_COORDINATES)
+        active_ribbon_y = getattr(self, "ribbon_y", self.RIBBON_Y)
+
         if frame_bgr is not None and frame_bgr.size > 0:
             h, w = frame_bgr.shape[:2]
-            for idx, nx in enumerate(self.SLOT_X_COORDINATES):
+            for idx, nx in enumerate(active_coords):
                 # Slot 0 (first unit card) is ALWAYS occupied in active combat
                 if idx == 0:
                     occupied.append(idx)
                     continue
 
                 cx = int(nx * w)
-                x1, x2 = max(0, int((nx - 0.030) * w)), min(w, int((nx + 0.030) * w))
-                y1, y2 = max(0, int(0.835 * h)), min(h, int(0.975 * h))
+                half_box = int(0.022 * w)
+                x1, x2 = max(0, cx - half_box), min(w, cx + half_box)
+                y1, y2 = max(0, int((active_ribbon_y - 0.065) * h)), min(h, int((active_ribbon_y + 0.065) * h))
                 crop = frame_bgr[y1:y2, x1:x2]
                 if crop.size == 0:
                     continue
@@ -163,14 +255,14 @@ class DeploymentPlanner:
                 b_mean = float(np.mean(crop[:, :, 0]))
                 g_mean = float(np.mean(crop[:, :, 1]))
                 # Empty slots in Clash of Clans have transparent dashed borders where base scenery shines through
-                is_grass = (g_mean - b_mean > 20.0 and mean_v < 60.0)
-                is_card = not is_grass and (mean_v >= 70.0 or (mean_v >= 50.0 and std_v >= 25.0))
+                is_grass = (g_mean - b_mean > 18.0 and mean_v < 70.0) or (b_mean < 50.0 and g_mean < 60.0 and mean_v < 55.0)
+                is_card = not is_grass and (mean_v >= 70.0 or (mean_v >= 45.0 and std_v >= 20.0))
                 if is_card:
                     occupied.append(idx)
 
         # Take contiguous sequence of occupied slots starting from 0
         contiguous = []
-        for i in range(len(self.SLOT_X_COORDINATES)):
+        for i in range(len(active_coords)):
             if i in occupied:
                 contiguous.append(i)
             else:
@@ -202,7 +294,8 @@ class DeploymentPlanner:
                 hero_end = min(total_occ, hero_start + num_heroes)
             hero_slots = list(range(hero_start, hero_end))
             spell_start = hero_slots[-1] + 1 if hero_slots else (siege_slot + 1 if siege_slot is not None else len(troop_slots))
-            spell_slots = list(range(spell_start, total_occ))
+            # Only assign as many spell slots as configured in active_spells
+            spell_slots = list(range(spell_start, min(spell_start + num_spells, total_occ)))
             if not spell_slots and total_occ > hero_start and active_spells:
                 spell_slots = [total_occ - 1]
                 hero_slots = [s for s in hero_slots if s != total_occ - 1]
@@ -388,16 +481,17 @@ class DeploymentPlanner:
         import re
         import cv2
         import numpy as np
-        if frame_bgr is None or frame_bgr.size == 0 or slot_idx < 0 or slot_idx >= len(self.SLOT_X_COORDINATES):
+        if frame_bgr is None or frame_bgr.size == 0 or slot_idx < 0:
             return None
 
         h, w = frame_bgr.shape[:2]
-        nx = self.SLOT_X_COORDINATES[slot_idx]
+        nx = self.get_slot_x(slot_idx)
+        card_y = getattr(self, "ribbon_y", self.RIBBON_Y)
         # Precise top-right badge region of the card
-        x1 = max(0, round((nx - 0.0107) * w))
-        x2 = min(w, round((nx + 0.0430) * w))
-        y1 = max(0, round(0.8174 * h))
-        y2 = min(h, round(0.8783 * h))
+        x1 = max(0, round((nx - 0.015) * w))
+        x2 = min(w, round((nx + 0.045) * w))
+        y1 = max(0, round((card_y - 0.080) * h))
+        y2 = min(h, round((card_y - 0.020) * h))
 
         crop = frame_bgr[y1:y2, x1:x2]
         if crop.size == 0:
@@ -644,15 +738,17 @@ class DeploymentPlanner:
         """Triggers Hero abilities during combat monitoring if damage stagnates (1 click per hero)."""
         recovery_actions: List[DeploymentAction] = []
         target_slots = hero_slots if (hero_slots is not None and len(hero_slots) > 0) else [2, 3]
+        active_coords = getattr(self, "slot_x_coordinates", self.SLOT_X_COORDINATES)
+        active_ribbon_y = getattr(self, "ribbon_y", self.RIBBON_Y)
         for slot_idx in target_slots:
-            if slot_idx >= len(self.SLOT_X_COORDINATES):
+            if slot_idx >= len(active_coords):
                 continue
             recovery_actions.append(DeploymentAction(
                 action_type=ActionType.ACTIVATE_ABILITY,
                 target_name=f"Hero Ability {slot_idx}",
                 slot_index=slot_idx,
-                norm_x=self.SLOT_X_COORDINATES[slot_idx],
-                norm_y=self.RIBBON_Y,
+                norm_x=self.get_slot_x(slot_idx),
+                norm_y=active_ribbon_y,
                 tap_count=1,
                 delay_after_sec=0.12,
                 description=f"Trigger Hero Ability on Slot {slot_idx}"

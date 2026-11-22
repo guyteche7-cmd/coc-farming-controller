@@ -122,3 +122,33 @@ class TestArmyDetection:
         assert final_action.action_type == ActionType.CLICK_UI
         assert "Deselect" in final_action.target_name
         assert final_action.slot_index == 0
+
+    def test_reduced_deployment_bar_archer_queen_alignment(self):
+        """
+        Verifies that when the player reduces in-game deployment bar size,
+        DeploymentPlanner auto-calibrates to compact mode, accurately aligning
+        Archer Queen on Slot 3 (x ~ 0.3787) instead of skipping her at x=0.345.
+        """
+        import numpy as np
+
+        planner = DeploymentPlanner()
+        # Mock frame simulating compact ribbon:
+        # End Battle is on left (x < 140), grass until x=180, Card 0 starts at x=180 (norm 0.180)
+        h, w = 575, 1024
+        frame = np.full((h, w, 3), [40, 55, 30], dtype=np.uint8)  # Grass background
+        # End battle red button on left
+        frame[int(0.85*h):, :int(0.12*w)] = [30, 30, 200]
+        # Draw solid unit cards at compact positions (0.1835, 0.2486, 0.3136, 0.3787...)
+        for nx in planner.SLOT_X_COORDINATES_COMPACT[:7]:
+            cx = int(nx * w)
+            hw = int(0.025 * w)
+            frame[int(0.85*h):int(0.97*h), cx-hw:cx+hw] = [120, 110, 130]
+
+        mode = planner.auto_calibrate_ribbon(frame)
+        assert mode == "compact", f"Expected compact mode, got {mode}"
+        assert planner.bar_mode == "compact"
+        # Slot 3 (Archer Queen) must be precisely in the range 0.365 - 0.395
+        queen_x = planner.get_slot_x(3)
+        assert 0.365 <= queen_x <= 0.395, f"Archer Queen X {queen_x} out of compact range"
+        # Slot 0 (Troops) must be >= 0.170 (not old 0.106)
+        assert planner.get_slot_x(0) >= 0.170, f"Slot 0 X {planner.get_slot_x(0)} should be >= 0.170"

@@ -615,15 +615,23 @@ class StateMachine:
         confirmed_spot = probe_points[0]
         troop_deployed = False
 
+        from src.capture.screen_capture import ScreenCapture
+        cap = ScreenCapture(self.calibrator) if self.calibrator else None
+
+        # Auto-calibrate army ribbon geometry dynamically before selecting any unit slot
+        if frame is not None and frame.size > 0:
+            self.deployment_planner.auto_calibrate_ribbon(frame)
+        elif cap:
+            init_f = cap.capture_frame()
+            if init_f is not None and init_f.size > 0:
+                self.deployment_planner.auto_calibrate_ribbon(init_f)
+
         # -------------------------------------------------------------
         # STEP 1: SELECT SLOT 0 (REGULAR TROOP) & PROBE FOR VALID DEPLOY SPOT
         # -------------------------------------------------------------
         select_action = self.deployment_planner.generate_slot_select_action(0)
         self.executor.execute_deployment_action(select_action)
         time.sleep(0.12)
-
-        from src.capture.screen_capture import ScreenCapture
-        cap = ScreenCapture(self.calibrator) if self.calibrator else None
 
         for idx, (px, py) in enumerate(probe_points):
             if self.is_stopped or self.is_paused:
@@ -878,6 +886,7 @@ class StateMachine:
         if not self.is_stopped and not self.is_paused and layout.spell_slots:
             logger.info(f"[DEPLOYMENT] Phase 5/6: Casting Spells on slots {layout.spell_slots} across randomized base targets...")
             spell_targets = self.deployment_planner.get_randomized_spell_points()
+            active_ribbon_y = getattr(self.deployment_planner, "ribbon_y", self.deployment_planner.RIBBON_Y)
             for sp_slot in layout.spell_slots:
                 if self.is_stopped or self.is_paused:
                     return
@@ -885,10 +894,12 @@ class StateMachine:
                 self.executor.execute_deployment_action(select_sp)
                 time.sleep(0.08)
 
+                sp_x = self.deployment_planner.get_slot_x(sp_slot)
+                spell_depleted = False
                 for wave in range(2):  # 2 passes across targets
-                    if self.is_stopped or self.is_paused:
-                        return
-                    for pt_x, pt_y in spell_targets:
+                    if self.is_stopped or self.is_paused or spell_depleted:
+                        break
+                    for t_idx, (pt_x, pt_y) in enumerate(spell_targets):
                         if self.is_stopped or self.is_paused:
                             return
                         if self.calibrator and not self.calibrator.is_game_in_foreground():
@@ -907,15 +918,19 @@ class StateMachine:
                         self.executor.execute_deployment_action(cast_action)
                         time.sleep(0.04)
 
-                        if cap:
+                        # Only evaluate greyed out after at least 6 spells dropped in wave 0 or in wave 1
+                        if cap and (wave > 0 or t_idx >= 6):
                             chk_frame = cap.capture_frame()
-                            if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(sp_slot)):
+                            if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, sp_x, active_ribbon_y):
                                 logger.info(f"[DEPLOYMENT] Slot {sp_slot} (Spells) fully cast and greyed out!")
+                                spell_depleted = True
                                 break
 
-                    if cap:
+                    if cap and not spell_depleted:
                         chk_frame = cap.capture_frame()
-                        if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, self.deployment_planner.get_slot_x(sp_slot)):
+                        if chk_frame is not None and self.deployment_planner.is_slot_greyed_out(chk_frame, sp_x, active_ribbon_y):
+                            logger.info(f"[DEPLOYMENT] Slot {sp_slot} (Spells) fully cast and greyed out!")
+                            spell_depleted = True
                             break
 
         # 6. WAIT BEFORE ACTIVATING HERO ABILITIES (USER CONFIGURED: REDUCED TO 6s)
@@ -934,6 +949,7 @@ class StateMachine:
         if not self.is_stopped and not self.is_paused and layout.hero_slots:
             logger.info(f"[DEPLOYMENT] Phase 7: Activating Hero Abilities on slots {layout.hero_slots}...")
             self.notifier.announce("Activating hero abilities!", chime="accept")
+            active_ribbon_y = getattr(self.deployment_planner, "ribbon_y", self.deployment_planner.RIBBON_Y)
             for idx, slot_idx in enumerate(layout.hero_slots):
                 if self.is_stopped or self.is_paused:
                     return
@@ -943,7 +959,7 @@ class StateMachine:
                     target_name=f"Ability: {h_name}",
                     slot_index=slot_idx,
                     norm_x=self.deployment_planner.get_slot_x(slot_idx),
-                    norm_y=self.deployment_planner.RIBBON_Y,
+                    norm_y=active_ribbon_y,
                     tap_count=1,
                     delay_after_sec=0.12,
                     description=f"Click Hero Slot {slot_idx} (1 tap) to trigger ability for {h_name}"
