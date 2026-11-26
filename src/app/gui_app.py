@@ -24,6 +24,14 @@ from src.control.session_controller import SessionController
 from src.control.notifier import Notifier
 from src.state.game_state import UIState, GameState
 from src.rules.expression_parser import ExpressionEvaluator
+from src.planning.troop_housing import (
+    get_troop_space,
+    get_spell_space,
+    calculate_army_housing_space,
+    calculate_spell_housing_space,
+    TROOP_HOUSING_SPACE,
+    SPELL_HOUSING_SPACE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -474,13 +482,25 @@ class DashboardApp(ctk.CTk):
         self.ent_de.grid(row=4, column=1, padx=(4, 10), pady=2, sticky="e")
         self.ent_de.bind("<FocusOut>", lambda e: self._on_loot_criteria_change())
 
+        # DE Prerequisite Gate (Prevents 10k DE from accepting low gold/elixir bases in OR mode)
+        self.chk_de_gate_var = ctk.BooleanVar(value=getattr(self.config.target, "dark_elixir_as_gate", True))
+        self.chk_de_gate = ctk.CTkCheckBox(
+            loot_card,
+            text="Gate: Require DE as (AND)",
+            variable=self.chk_de_gate_var,
+            command=self._on_loot_criteria_change,
+            font=ctk.CTkFont(size=11),
+            text_color="#94a3b8"
+        )
+        self.chk_de_gate.grid(row=5, column=0, columnspan=2, padx=(24, 10), pady=(0, 2), sticky="w")
+
         # 4. Combined (Gold + Elixir) Checkbox & Entry
         self.chk_comb_var = ctk.BooleanVar(value=getattr(self.config.target, "watch_combined", True))
         self.chk_comb = ctk.CTkCheckBox(loot_card, text="Combined (G+E):", variable=self.chk_comb_var, command=self._on_loot_criteria_change, font=ctk.CTkFont(size=12))
-        self.chk_comb.grid(row=5, column=0, padx=(10, 4), pady=2, sticky="w")
+        self.chk_comb.grid(row=6, column=0, padx=(10, 4), pady=2, sticky="w")
         self.ent_comb_var = ctk.StringVar(value=str(getattr(self.config.target, "min_combined", 1000000)))
         self.ent_comb = ctk.CTkEntry(loot_card, textvariable=self.ent_comb_var, width=95, height=24, justify="right")
-        self.ent_comb.grid(row=5, column=1, padx=(4, 10), pady=2, sticky="e")
+        self.ent_comb.grid(row=6, column=1, padx=(4, 10), pady=2, sticky="e")
         self.ent_comb.bind("<FocusOut>", lambda e: self._on_loot_criteria_change())
 
         # Active Summary Label
@@ -492,7 +512,7 @@ class DashboardApp(ctk.CTk):
             wraplength=310,
             justify="left"
         )
-        self.lbl_active_criteria.grid(row=6, column=0, columnspan=2, padx=10, pady=(2, 6), sticky="w")
+        self.lbl_active_criteria.grid(row=7, column=0, columnspan=2, padx=10, pady=(2, 6), sticky="w")
         self._on_loot_criteria_change()
 
         # Combat Exit Criteria Card (Home)
@@ -897,8 +917,10 @@ class DashboardApp(ctk.CTk):
 
         tab_live_name = safe_text("📊 Telemetry & Live Feed")
         tab_army_name = safe_text("⚔️ Army Setup & Sequencer")
+        tab_hist_name = safe_text("📜 Attack History")
         self.tab_live = self.main_tabview.add(tab_live_name)
         self.tab_army = self.main_tabview.add(tab_army_name)
+        self.tab_hist = self.main_tabview.add(tab_hist_name)
 
         self.tab_live.grid_columnconfigure(0, weight=1)
         self.tab_live.grid_rowconfigure(2, weight=1)
@@ -978,6 +1000,9 @@ class DashboardApp(ctk.CTk):
         # ----------------- TAB 2: ARMY SETUP & DROP SEQUENCER -----------------
         self._build_army_tab(self.tab_army)
 
+        # ----------------- TAB 3: ATTACK HISTORY & RUN TOTALS -----------------
+        self._build_history_tab(self.tab_hist)
+
         self.log_event("Application initialized. Ready to farm.")
         self.notifier.announce("Clash of Clans Farming Controller is ready", chime="ok")
 
@@ -996,6 +1021,9 @@ class DashboardApp(ctk.CTk):
         )
         scroll.grid(row=0, column=0, sticky="nsew", padx=4, pady=2)
         scroll.grid_columnconfigure(0, weight=1)
+
+        self.army_scroll_frame = scroll
+        self._enable_smooth_mousewheel_scrolling(scroll)
 
         # Header banner (tightened top padding)
         lbl_hdr = ctk.CTkLabel(
@@ -1016,10 +1044,109 @@ class DashboardApp(ctk.CTk):
         lbl_desc.grid(row=1, column=0, padx=6, pady=(0, 6), sticky="w")
 
         # -------------------------------------------------------------
-        # 0. DEPLOYMENT BAR SIZE & CALIBRATION LOCK
+        # 0. ARMY HOUSING SPACE & CAPACITY SLIDERS (TH17 VERIFIED)
+        # -------------------------------------------------------------
+        card_capacity = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
+        card_capacity.grid(row=2, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_capacity.grid_columnconfigure(0, weight=1)
+        card_capacity.grid_columnconfigure(1, weight=1)
+
+        cap_hdr_frame = ctk.CTkFrame(card_capacity, fg_color="transparent")
+        cap_hdr_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=(8, 4), sticky="ew")
+        cap_hdr_frame.grid_columnconfigure(0, weight=1)
+
+        lbl_cap_hdr = ctk.CTkLabel(
+            cap_hdr_frame,
+            text=safe_text("⛺ Army Camp & Spell Storage Capacity:"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#38bdf8"
+        )
+        lbl_cap_hdr.pack(side="left")
+
+        # Live Troop Space Badge
+        self.lbl_troop_cap_badge = ctk.CTkLabel(
+            cap_hdr_frame,
+            text="Troop Space: 352 / 352",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color="#22c55e",
+            fg_color="#18181b",
+            corner_radius=6,
+            padx=8,
+            pady=2
+        )
+        self.lbl_troop_cap_badge.pack(side="right")
+
+        # Live Spell Space Badge
+        self.lbl_spell_cap_badge = ctk.CTkLabel(
+            cap_hdr_frame,
+            text="Spell Space: 11 / 11",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color="#a855f7",
+            fg_color="#18181b",
+            corner_radius=6,
+            padx=8,
+            pady=2
+        )
+        self.lbl_spell_cap_badge.pack(side="right", padx=(0, 6))
+
+        # Controls Row: Troop Capacity Slider & Entry
+        cap_ctrl_frame = ctk.CTkFrame(card_capacity, fg_color="#18181b", corner_radius=8)
+        cap_ctrl_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=(2, 8), sticky="ew")
+        cap_ctrl_frame.grid_columnconfigure(1, weight=1)
+
+        # Troop Capacity
+        lbl_tc = ctk.CTkLabel(cap_ctrl_frame, text="Troop Camp Limit:", font=ctk.CTkFont(size=11, weight="bold"))
+        lbl_tc.grid(row=0, column=0, padx=(10, 6), pady=6, sticky="w")
+
+        init_tc = int(getattr(self.config.deployment, "max_troop_capacity", 352))
+        self.ent_troop_cap_var = ctk.StringVar(value=str(init_tc))
+        self.ent_troop_cap = ctk.CTkEntry(cap_ctrl_frame, textvariable=self.ent_troop_cap_var, width=50, height=24, justify="center")
+        self.ent_troop_cap.grid(row=0, column=1, padx=(0, 8), pady=6, sticky="w")
+
+        self.slider_troop_cap = ctk.CTkSlider(
+            cap_ctrl_frame,
+            from_=50,
+            to=400,
+            number_of_steps=350,
+            width=160,
+            height=16,
+            command=self._on_troop_capacity_slider_changed
+        )
+        self.slider_troop_cap.set(init_tc)
+        self.slider_troop_cap.grid(row=0, column=2, padx=6, pady=6, sticky="w")
+
+        self.ent_troop_cap.bind("<FocusOut>", lambda e: self._on_troop_capacity_entry_changed())
+        self.ent_troop_cap.bind("<Return>", lambda e: self._on_troop_capacity_entry_changed())
+
+        # Spell Capacity
+        lbl_sc = ctk.CTkLabel(cap_ctrl_frame, text="Spell Storage Limit:", font=ctk.CTkFont(size=11, weight="bold"))
+        lbl_sc.grid(row=0, column=3, padx=(16, 6), pady=6, sticky="w")
+
+        init_sc = int(getattr(self.config.deployment, "max_spell_capacity", 11))
+        self.ent_spell_cap_var = ctk.StringVar(value=str(init_sc))
+        self.ent_spell_cap = ctk.CTkEntry(cap_ctrl_frame, textvariable=self.ent_spell_cap_var, width=40, height=24, justify="center")
+        self.ent_spell_cap.grid(row=0, column=4, padx=(0, 8), pady=6, sticky="w")
+
+        self.slider_spell_cap = ctk.CTkSlider(
+            cap_ctrl_frame,
+            from_=1,
+            to=15,
+            number_of_steps=14,
+            width=100,
+            height=16,
+            command=self._on_spell_capacity_slider_changed
+        )
+        self.slider_spell_cap.set(init_sc)
+        self.slider_spell_cap.grid(row=0, column=5, padx=(6, 10), pady=6, sticky="w")
+
+        self.ent_spell_cap.bind("<FocusOut>", lambda e: self._on_spell_capacity_entry_changed())
+        self.ent_spell_cap.bind("<Return>", lambda e: self._on_spell_capacity_entry_changed())
+
+        # -------------------------------------------------------------
+        # 1. DEPLOYMENT BAR SIZE & CALIBRATION LOCK
         # -------------------------------------------------------------
         card_ribbon = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_ribbon.grid(row=2, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_ribbon.grid(row=3, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_ribbon.grid_columnconfigure(0, weight=1)
         card_ribbon.grid_columnconfigure(1, weight=1)
 
@@ -1098,10 +1225,10 @@ class DashboardApp(ctk.CTk):
         self.btn_verify_req.pack(side="right")
 
         # -------------------------------------------------------------
-        # 1. DYNAMIC TROOPS SQUAD & HORIZONTAL SELECTOR RIBBON
+        # 2. DYNAMIC TROOPS SQUAD & HORIZONTAL SELECTOR RIBBON
         # -------------------------------------------------------------
         card_troops = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_troops.grid(row=3, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_troops.grid(row=4, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_troops.grid_columnconfigure(0, weight=1)
 
         t_hdr_frame = ctk.CTkFrame(card_troops, fg_color="transparent")
@@ -1193,10 +1320,10 @@ class DashboardApp(ctk.CTk):
             self._add_troop_slot(unit_name="Super Wall Breaker", qty=4, prio_idx=1, enabled=True)
 
         # -------------------------------------------------------------
-        # 2. SIEGE MACHINE (HORIZONTAL QUICK SELECTOR & DEPLOYMENT SLOT)
+        # 3. SIEGE MACHINE (HORIZONTAL QUICK SELECTOR & DEPLOYMENT SLOT)
         # -------------------------------------------------------------
         card_siege = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_siege.grid(row=4, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_siege.grid(row=5, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_siege.grid_columnconfigure(0, weight=1)
 
         s_hdr_frame = ctk.CTkFrame(card_siege, fg_color="transparent")
@@ -1295,10 +1422,10 @@ class DashboardApp(ctk.CTk):
         self._update_siege_icon_preview()
 
         # -------------------------------------------------------------
-        # 3. HEROES (TH17 COMPLETE 6 HERO ROSTER, MAX 4 ACTIVE)
+        # 4. HEROES (TH17 COMPLETE 6 HERO ROSTER, MAX 4 ACTIVE)
         # -------------------------------------------------------------
         card_heroes = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_heroes.grid(row=5, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_heroes.grid(row=6, column=0, padx=6, pady=(0, 8), sticky="ew")
         for c_i in range(6):
             card_heroes.grid_columnconfigure(c_i, weight=1)
 
@@ -1382,10 +1509,10 @@ class DashboardApp(ctk.CTk):
         lbl_del_hint.pack(side="left")
 
         # -------------------------------------------------------------
-        # 4. SPELLS (DYNAMIC SPELL ARSENAL WITH HORIZONTAL QUICK SELECT)
+        # 5. SPELLS (DYNAMIC SPELL ARSENAL WITH HORIZONTAL QUICK SELECT)
         # -------------------------------------------------------------
         card_spells = ctk.CTkFrame(scroll, fg_color="#222226", corner_radius=10)
-        card_spells.grid(row=6, column=0, padx=6, pady=(0, 8), sticky="ew")
+        card_spells.grid(row=7, column=0, padx=6, pady=(0, 8), sticky="ew")
         card_spells.grid_columnconfigure(0, weight=1)
 
         sp_hdr_frame = ctk.CTkFrame(card_spells, fg_color="transparent")
@@ -1488,7 +1615,262 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._save_army_configuration
         )
-        btn_save.grid(row=7, column=0, padx=6, pady=(4, 12), sticky="ew")
+        btn_save.grid(row=8, column=0, padx=6, pady=(4, 12), sticky="ew")
+        self._update_army_capacity_display()
+
+    # -----------------------------------------------------------------
+    # SMOOTH SCROLLING, HOUSING SPACE & ATTACK HISTORY
+    # -----------------------------------------------------------------
+    def _enable_smooth_mousewheel_scrolling(self, scrollable_frame) -> None:
+        """
+        Recursively binds <MouseWheel> events across all child widgets so mousewheel scrolling
+        remains fluid, responsive, and stutter-free across all panels.
+        """
+        canvas = getattr(scrollable_frame, "_parent_canvas", None)
+        if not canvas:
+            return
+
+        def _on_mousewheel(event):
+            if sys.platform == "darwin":
+                delta = -1 * int(event.delta)
+            else:
+                delta = -1 * int(event.delta / 120)
+            canvas.yview_scroll(delta, "units")
+
+        def _bind_widget(w):
+            if isinstance(w, ctk.CTkScrollableFrame) and w != scrollable_frame:
+                if getattr(w, "_orientation", "vertical") == "horizontal":
+                    return
+            try:
+                w.bind("<MouseWheel>", _on_mousewheel, add="+")
+            except Exception:
+                pass
+            for child in w.winfo_children():
+                _bind_widget(child)
+
+        self._bind_mousewheel_recursive = _bind_widget
+        _bind_widget(scrollable_frame)
+
+    def _on_troop_capacity_slider_changed(self, val: float) -> None:
+        new_v = int(round(float(val)))
+        if hasattr(self, "ent_troop_cap_var") and self.ent_troop_cap_var.get() != str(new_v):
+            self.ent_troop_cap_var.set(str(new_v))
+        self._update_army_capacity_display()
+
+    def _on_troop_capacity_entry_changed(self) -> None:
+        try:
+            val = int(self.ent_troop_cap_var.get())
+            val = max(50, min(400, val))
+            self.ent_troop_cap_var.set(str(val))
+            if hasattr(self, "slider_troop_cap"):
+                self.slider_troop_cap.set(val)
+        except ValueError:
+            pass
+        self._update_army_capacity_display()
+
+    def _on_spell_capacity_slider_changed(self, val: float) -> None:
+        new_v = int(round(float(val)))
+        if hasattr(self, "ent_spell_cap_var") and self.ent_spell_cap_var.get() != str(new_v):
+            self.ent_spell_cap_var.set(str(new_v))
+        self._update_army_capacity_display()
+
+    def _on_spell_capacity_entry_changed(self) -> None:
+        try:
+            val = int(self.ent_spell_cap_var.get())
+            val = max(1, min(15, val))
+            self.ent_spell_cap_var.set(str(val))
+            if hasattr(self, "slider_spell_cap"):
+                self.slider_spell_cap.set(val)
+        except ValueError:
+            pass
+        self._update_army_capacity_display()
+
+    def _update_army_capacity_display(self) -> None:
+        """Calculates and refreshes current army and spell housing space against configured limits."""
+        try:
+            troops_data = []
+            for r in getattr(self, "troop_slot_rows", []):
+                u_name = r["unit_var"].get()
+                try:
+                    qty = int(r["qty_var"].get())
+                except ValueError:
+                    qty = 0
+                en = r["en_var"].get()
+                troops_data.append((u_name, qty, en))
+                if "lbl_sp_hint" in r:
+                    unit_sp = get_troop_space(u_name)
+                    tot_sp = unit_sp * qty
+                    r["lbl_sp_hint"].configure(text=f"({tot_sp} sp)")
+
+            used_troop_sp, _ = calculate_army_housing_space(troops_data)
+
+            spells_data = []
+            for r in getattr(self, "spell_slot_rows", []):
+                sp_name = r["unit_var"].get()
+                try:
+                    qty = int(r["qty_var"].get())
+                except ValueError:
+                    qty = 0
+                en = r["en_var"].get()
+                spells_data.append((sp_name, qty, en))
+                if "lbl_sp_hint" in r:
+                    unit_sp = get_spell_space(sp_name)
+                    tot_sp = unit_sp * qty
+                    r["lbl_sp_hint"].configure(text=f"({tot_sp} sp)")
+
+            used_spell_sp, _ = calculate_spell_housing_space(spells_data)
+
+            try:
+                max_troop = int(self.ent_troop_cap_var.get())
+            except (ValueError, AttributeError):
+                max_troop = 352
+
+            try:
+                max_spell = int(self.ent_spell_cap_var.get())
+            except (ValueError, AttributeError):
+                max_spell = 11
+
+            if hasattr(self, "lbl_troop_cap_badge"):
+                if used_troop_sp > max_troop:
+                    diff = used_troop_sp - max_troop
+                    self.lbl_troop_cap_badge.configure(
+                        text=f"⚠️ Over Capacity: {used_troop_sp}/{max_troop} (+{diff} sp)",
+                        text_color="#ef4444"
+                    )
+                elif used_troop_sp == max_troop:
+                    self.lbl_troop_cap_badge.configure(
+                        text=f"✓ Full Army: {used_troop_sp}/{max_troop} sp (100%)",
+                        text_color="#22c55e"
+                    )
+                else:
+                    pct = round((used_troop_sp / max_troop) * 100) if max_troop > 0 else 0
+                    self.lbl_troop_cap_badge.configure(
+                        text=f"Troop Space: {used_troop_sp}/{max_troop} sp ({pct}%)",
+                        text_color="#38bdf8"
+                    )
+
+            if hasattr(self, "lbl_spell_cap_badge"):
+                if used_spell_sp > max_spell:
+                    diff = used_spell_sp - max_spell
+                    self.lbl_spell_cap_badge.configure(
+                        text=f"⚠️ Over Spell Cap: {used_spell_sp}/{max_spell} (+{diff} sp)",
+                        text_color="#ef4444"
+                    )
+                elif used_spell_sp == max_spell:
+                    self.lbl_spell_cap_badge.configure(
+                        text=f"✓ Full Spells: {used_spell_sp}/{max_spell} sp (100%)",
+                        text_color="#a855f7"
+                    )
+                else:
+                    self.lbl_spell_cap_badge.configure(
+                        text=f"Spell Space: {used_spell_sp}/{max_spell} sp",
+                        text_color="#c084fc"
+                    )
+        except Exception as e:
+            logger.debug(f"Error updating capacity display: {e}")
+
+    def _build_history_tab(self, parent) -> None:
+        """Constructs the dedicated Attack History & Cumulative Run Totals tab."""
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(1, weight=1)
+
+        # 1. Lifetime Run Summary Card Grid
+        summary_frame = ctk.CTkFrame(parent, fg_color="#222226", corner_radius=10)
+        summary_frame.grid(row=0, column=0, padx=8, pady=(4, 6), sticky="ew")
+        for i in range(4):
+            summary_frame.grid_columnconfigure(i, weight=1)
+
+        # Lifetime Gold
+        c_g = ctk.CTkFrame(summary_frame, fg_color="#18181b", corner_radius=8)
+        c_g.grid(row=0, column=0, padx=6, pady=6, sticky="ew")
+        lbl_g_title = ctk.CTkLabel(c_g, text=safe_text("🟡 Total Gold Looted"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#fbbf24")
+        lbl_g_title.pack(pady=(4, 0))
+        self.lbl_hist_gold = ctk.CTkLabel(c_g, text="0", font=ctk.CTkFont(size=16, weight="bold"), text_color="#fef08a")
+        self.lbl_hist_gold.pack(pady=(0, 4))
+
+        # Lifetime Elixir
+        c_e = ctk.CTkFrame(summary_frame, fg_color="#18181b", corner_radius=8)
+        c_e.grid(row=0, column=1, padx=6, pady=6, sticky="ew")
+        lbl_e_title = ctk.CTkLabel(c_e, text=safe_text("🟣 Total Elixir Looted"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#d946ef")
+        lbl_e_title.pack(pady=(4, 0))
+        self.lbl_hist_elixir = ctk.CTkLabel(c_e, text="0", font=ctk.CTkFont(size=16, weight="bold"), text_color="#f5d0fe")
+        self.lbl_hist_elixir.pack(pady=(0, 4))
+
+        # Lifetime Dark Elixir
+        c_de = ctk.CTkFrame(summary_frame, fg_color="#18181b", corner_radius=8)
+        c_de.grid(row=0, column=2, padx=6, pady=6, sticky="ew")
+        lbl_de_title = ctk.CTkLabel(c_de, text=safe_text("⚫ Total Dark Elixir"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#38bdf8")
+        lbl_de_title.pack(pady=(4, 0))
+        self.lbl_hist_de = ctk.CTkLabel(c_de, text="0", font=ctk.CTkFont(size=16, weight="bold"), text_color="#bae6fd")
+        self.lbl_hist_de.pack(pady=(0, 4))
+
+        # Lifetime Attacks
+        c_att = ctk.CTkFrame(summary_frame, fg_color="#18181b", corner_radius=8)
+        c_att.grid(row=0, column=3, padx=6, pady=6, sticky="ew")
+        lbl_att_title = ctk.CTkLabel(c_att, text=safe_text("⚔️ Attacks (Run Total)"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#22c55e")
+        lbl_att_title.pack(pady=(4, 0))
+        self.lbl_hist_attacks = ctk.CTkLabel(c_att, text="0", font=ctk.CTkFont(size=16, weight="bold"), text_color="#86efac")
+        self.lbl_hist_attacks.pack(pady=(0, 4))
+
+        # 2. Scrollable Attack History Table
+        hist_table_card = ctk.CTkFrame(parent, fg_color="#222226", corner_radius=10)
+        hist_table_card.grid(row=1, column=0, padx=8, pady=(0, 6), sticky="nsew")
+        hist_table_card.grid_columnconfigure(0, weight=1)
+        hist_table_card.grid_rowconfigure(2, weight=1)
+
+        t_hdr = ctk.CTkFrame(hist_table_card, fg_color="transparent")
+        t_hdr.grid(row=0, column=0, padx=10, pady=(8, 4), sticky="ew")
+        lbl_t_title = ctk.CTkLabel(
+            t_hdr,
+            text=safe_text("📜 Attack Log (All Attacks During Program Run):"),
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#e2e8f0"
+        )
+        lbl_t_title.pack(side="left")
+
+        # Table Column Headers
+        col_hdr = ctk.CTkFrame(hist_table_card, fg_color="#18181b", corner_radius=6)
+        col_hdr.grid(row=1, column=0, padx=10, pady=(0, 2), sticky="ew")
+        cols = [("#", 35), ("Time", 65), ("Outcome", 80), ("Gold Looted", 110), ("Elixir Looted", 110), ("Dark Elixir", 90), ("Duration", 70)]
+        for c_idx, (col_name, w) in enumerate(cols):
+            lbl_c = ctk.CTkLabel(col_hdr, text=col_name, width=w, font=ctk.CTkFont(size=11, weight="bold"), text_color="#94a3b8")
+            lbl_c.pack(side="left", padx=2, pady=4)
+
+        # Scrollable rows container
+        self.hist_scroll_rows = ctk.CTkScrollableFrame(
+            hist_table_card,
+            fg_color="#18181b",
+            corner_radius=8,
+            scrollbar_button_color="#3f3f46",
+            scrollbar_button_hover_color="#52525b"
+        )
+        self.hist_scroll_rows.grid(row=2, column=0, padx=10, pady=(0, 8), sticky="nsew")
+
+        self._enable_smooth_mousewheel_scrolling(self.hist_scroll_rows)
+        self.rendered_history_count = 0
+
+    def _render_history_table_row(self, index: int, record: dict) -> None:
+        if not hasattr(self, "hist_scroll_rows"):
+            return
+        row_frame = ctk.CTkFrame(self.hist_scroll_rows, fg_color="#222226" if index % 2 == 0 else "#1c1c20", corner_radius=4)
+        row_frame.pack(fill="x", padx=2, pady=1)
+
+        t_time = record.get("timestamp", datetime.now().strftime("%H:%M:%S"))
+        outcome = record.get("outcome", "VICTORY")
+        g = record.get("target_gold", 0)
+        e = record.get("target_elixir", 0)
+        de = record.get("target_dark_elixir", 0)
+        dur = int(record.get("duration_seconds", 60))
+
+        out_color = "#22c55e" if outcome == "VICTORY" else "#ef4444"
+
+        ctk.CTkLabel(row_frame, text=f"#{index}", width=35, font=ctk.CTkFont(size=10, weight="bold"), text_color="#a1a1aa").pack(side="left", padx=2, pady=3)
+        ctk.CTkLabel(row_frame, text=t_time, width=65, font=ctk.CTkFont(size=10), text_color="#cbd5e1").pack(side="left", padx=2, pady=3)
+        ctk.CTkLabel(row_frame, text=outcome, width=80, font=ctk.CTkFont(size=10, weight="bold"), text_color=out_color).pack(side="left", padx=2, pady=3)
+        ctk.CTkLabel(row_frame, text=f"+{g:,}", width=110, font=ctk.CTkFont(size=10, weight="bold"), text_color="#fbbf24").pack(side="left", padx=2, pady=3)
+        ctk.CTkLabel(row_frame, text=f"+{e:,}", width=110, font=ctk.CTkFont(size=10, weight="bold"), text_color="#d946ef").pack(side="left", padx=2, pady=3)
+        ctk.CTkLabel(row_frame, text=f"+{de:,}", width=90, font=ctk.CTkFont(size=10, weight="bold"), text_color="#38bdf8").pack(side="left", padx=2, pady=3)
+        ctk.CTkLabel(row_frame, text=f"{dur}s", width=70, font=ctk.CTkFont(size=10), text_color="#94a3b8").pack(side="left", padx=2, pady=3)
 
     # -----------------------------------------------------------------
     # DYNAMIC TROOP, SIEGE & SPELL MANAGEMENT
@@ -1574,12 +1956,15 @@ class DashboardApp(ctk.CTk):
             text=f"Slot {idx+1}:",
             variable=en_var,
             width=65,
-            font=ctk.CTkFont(size=11, weight="bold")
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._update_army_capacity_display
         )
         chk_t.grid(row=0, column=0, padx=(6, 2), pady=3, sticky="w")
 
         lbl_ico = ctk.CTkLabel(row_frame, text="", width=36, height=48)
         lbl_ico.grid(row=0, column=1, padx=3, pady=3)
+
+        lbl_sp_hint = ctk.CTkLabel(row_frame, text="", font=ctk.CTkFont(size=10, weight="bold"), text_color="#38bdf8", width=58)
 
         row_data = {
             "frame": row_frame,
@@ -1589,6 +1974,7 @@ class DashboardApp(ctk.CTk):
             "prio_var": prio_var,
             "chk_t": chk_t,
             "lbl_ico": lbl_ico,
+            "lbl_sp_hint": lbl_sp_hint,
         }
 
         opt_t = ctk.CTkOptionMenu(
@@ -1597,7 +1983,7 @@ class DashboardApp(ctk.CTk):
             values=TROOP_OPTIONS,
             width=150,
             height=26,
-            command=lambda v, r=row_data: self._update_troop_row_icon(r)
+            command=lambda v, r=row_data: (self._update_troop_row_icon(r), self._update_army_capacity_display())
         )
         opt_t.grid(row=0, column=2, padx=3, pady=3, sticky="w")
 
@@ -1633,6 +2019,9 @@ class DashboardApp(ctk.CTk):
         )
         btn_plus.grid(row=0, column=6, padx=1, pady=3)
 
+        # Space label (e.g. (352 sp))
+        lbl_sp_hint.grid(row=0, column=7, padx=(2, 4), pady=3)
+
         # Slider [===O===] (1 to 120)
         init_val = min(120, max(1, qty))
         slider_q = ctk.CTkSlider(
@@ -1640,12 +2029,12 @@ class DashboardApp(ctk.CTk):
             from_=1,
             to=120,
             number_of_steps=119,
-            width=100,
+            width=90,
             height=16,
             command=lambda val, r=row_data: self._on_troop_slider_changed(r, val)
         )
         slider_q.set(init_val)
-        slider_q.grid(row=0, column=7, padx=(4, 6), pady=3)
+        slider_q.grid(row=0, column=8, padx=(4, 6), pady=3)
 
         opt_p = ctk.CTkOptionMenu(
             row_frame,
@@ -1654,7 +2043,7 @@ class DashboardApp(ctk.CTk):
             width=130,
             height=26
         )
-        opt_p.grid(row=0, column=8, padx=3, pady=3, sticky="e")
+        opt_p.grid(row=0, column=9, padx=3, pady=3, sticky="e")
 
         btn_del = ctk.CTkButton(
             row_frame,
@@ -1666,7 +2055,7 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=11, weight="bold"),
             command=lambda r=row_data: self._remove_troop_slot(r)
         )
-        btn_del.grid(row=0, column=9, padx=(3, 6), pady=3)
+        btn_del.grid(row=0, column=10, padx=(3, 6), pady=3)
 
         row_data["opt_t"] = opt_t
         row_data["btn_minus"] = btn_minus
@@ -1676,12 +2065,16 @@ class DashboardApp(ctk.CTk):
         row_data["opt_p"] = opt_p
         row_data["btn_del"] = btn_del
 
-        # Bidirectional sync: entry -> slider
+        # Bidirectional sync: entry -> slider & capacity display
         qty_var.trace_add("write", lambda *a, r=row_data: self._sync_troop_entry_to_slider(r))
 
         self.troop_slot_rows.append(row_data)
         self._update_troop_row_icon(row_data)
         self._rebuild_troop_slot_indices()
+
+        if hasattr(self, "_bind_mousewheel_recursive"):
+            self._bind_mousewheel_recursive(row_frame)
+        self._update_army_capacity_display()
 
     def _step_troop_qty(self, row_data: dict, delta: int) -> None:
         try:
@@ -1691,11 +2084,13 @@ class DashboardApp(ctk.CTk):
         new_v = max(1, min(120, curr + delta))
         row_data["qty_var"].set(str(new_v))
         row_data["slider_q"].set(new_v)
+        self._update_army_capacity_display()
 
     def _on_troop_slider_changed(self, row_data: dict, val: float) -> None:
         new_v = int(round(float(val)))
         if row_data["qty_var"].get() != str(new_v):
             row_data["qty_var"].set(str(new_v))
+        self._update_army_capacity_display()
 
     def _sync_troop_entry_to_slider(self, row_data: dict) -> None:
         val_str = row_data["qty_var"].get().strip()
@@ -1703,12 +2098,14 @@ class DashboardApp(ctk.CTk):
             v = int(val_str)
             if 1 <= v <= 120:
                 row_data["slider_q"].set(v)
+        self._update_army_capacity_display()
 
     def _remove_troop_slot(self, row_data: dict) -> None:
         if row_data in self.troop_slot_rows:
             self.troop_slot_rows.remove(row_data)
             row_data["frame"].destroy()
             self._rebuild_troop_slot_indices()
+            self._update_army_capacity_display()
 
     def _rebuild_troop_slot_indices(self) -> None:
         for idx, row in enumerate(self.troop_slot_rows):
@@ -1745,12 +2142,15 @@ class DashboardApp(ctk.CTk):
             text=f"Spell {idx+1}:",
             variable=en_var,
             width=75,
-            font=ctk.CTkFont(size=11, weight="bold")
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._update_army_capacity_display
         )
         chk_sp.grid(row=0, column=0, padx=(6, 2), pady=3, sticky="w")
 
         lbl_ico = ctk.CTkLabel(row_frame, text="", width=46, height=48)
         lbl_ico.grid(row=0, column=1, padx=3, pady=3)
+
+        lbl_sp_hint = ctk.CTkLabel(row_frame, text="", font=ctk.CTkFont(size=10, weight="bold"), text_color="#c084fc", width=58)
 
         row_data = {
             "frame": row_frame,
@@ -1759,6 +2159,7 @@ class DashboardApp(ctk.CTk):
             "qty_var": qty_var,
             "chk_sp": chk_sp,
             "lbl_ico": lbl_ico,
+            "lbl_sp_hint": lbl_sp_hint,
         }
 
         opt_sp = ctk.CTkOptionMenu(
@@ -1767,7 +2168,7 @@ class DashboardApp(ctk.CTk):
             values=SPELL_OPTIONS,
             width=150,
             height=26,
-            command=lambda v, r=row_data: self._update_spell_row_icon(r)
+            command=lambda v, r=row_data: (self._update_spell_row_icon(r), self._update_army_capacity_display())
         )
         opt_sp.grid(row=0, column=2, padx=3, pady=3, sticky="w")
 
@@ -1801,6 +2202,9 @@ class DashboardApp(ctk.CTk):
         )
         btn_plus.grid(row=0, column=6, padx=1, pady=3)
 
+        # Space label (e.g. (11 sp))
+        lbl_sp_hint.grid(row=0, column=7, padx=(2, 4), pady=3)
+
         # Slider [===O===] (1 to 12)
         init_sp_val = min(12, max(1, qty))
         slider_q = ctk.CTkSlider(
@@ -1808,12 +2212,12 @@ class DashboardApp(ctk.CTk):
             from_=1,
             to=12,
             number_of_steps=11,
-            width=100,
+            width=90,
             height=16,
             command=lambda val, r=row_data: self._on_spell_slider_changed(r, val)
         )
         slider_q.set(init_sp_val)
-        slider_q.grid(row=0, column=7, padx=(4, 6), pady=3)
+        slider_q.grid(row=0, column=8, padx=(4, 6), pady=3)
 
         btn_del = ctk.CTkButton(
             row_frame,
@@ -1825,7 +2229,7 @@ class DashboardApp(ctk.CTk):
             font=ctk.CTkFont(size=11, weight="bold"),
             command=lambda r=row_data: self._remove_spell_slot(r)
         )
-        btn_del.grid(row=0, column=8, padx=(3, 6), pady=3)
+        btn_del.grid(row=0, column=9, padx=(3, 6), pady=3)
 
         row_data["opt_sp"] = opt_sp
         row_data["btn_minus"] = btn_minus
@@ -1840,6 +2244,10 @@ class DashboardApp(ctk.CTk):
         self._update_spell_row_icon(row_data)
         self._rebuild_spell_slot_indices()
 
+        if hasattr(self, "_bind_mousewheel_recursive"):
+            self._bind_mousewheel_recursive(row_frame)
+        self._update_army_capacity_display()
+
     def _step_spell_qty(self, row_data: dict, delta: int) -> None:
         try:
             curr = int(row_data["qty_var"].get())
@@ -1848,11 +2256,13 @@ class DashboardApp(ctk.CTk):
         new_v = max(1, min(12, curr + delta))
         row_data["qty_var"].set(str(new_v))
         row_data["slider_q"].set(new_v)
+        self._update_army_capacity_display()
 
     def _on_spell_slider_changed(self, row_data: dict, val: float) -> None:
         new_v = int(round(float(val)))
         if row_data["qty_var"].get() != str(new_v):
             row_data["qty_var"].set(str(new_v))
+        self._update_army_capacity_display()
 
     def _sync_spell_entry_to_slider(self, row_data: dict) -> None:
         val_str = row_data["qty_var"].get().strip()
@@ -1860,12 +2270,14 @@ class DashboardApp(ctk.CTk):
             v = int(val_str)
             if 1 <= v <= 12:
                 row_data["slider_q"].set(v)
+        self._update_army_capacity_display()
 
     def _remove_spell_slot(self, row_data: dict) -> None:
         if row_data in self.spell_slot_rows:
             self.spell_slot_rows.remove(row_data)
             row_data["frame"].destroy()
             self._rebuild_spell_slot_indices()
+            self._update_army_capacity_display()
 
     def _rebuild_spell_slot_indices(self) -> None:
         for idx, row in enumerate(self.spell_slot_rows):
@@ -2016,6 +2428,17 @@ class DashboardApp(ctk.CTk):
             self.config.deployment.hero_ability_delay_seconds = ability_delay
             self.config.deployment.deploy_siege = s_en
             self.config.deployment.deploy_spells = sp_en
+
+            if hasattr(self, "ent_troop_cap_var"):
+                try:
+                    self.config.deployment.max_troop_capacity = int(self.ent_troop_cap_var.get())
+                except ValueError:
+                    pass
+            if hasattr(self, "ent_spell_cap_var"):
+                try:
+                    self.config.deployment.max_spell_capacity = int(self.ent_spell_cap_var.get())
+                except ValueError:
+                    pass
 
             self.config_manager.save(self.config)
 
@@ -2502,7 +2925,11 @@ class DashboardApp(ctk.CTk):
             start_key = "⌘R" if is_mac else "F8"
             pause_key = "⌘P" if is_mac else "F9"
 
-            if hasattr(self.controller, "state_machine") and self.controller.state_machine:
+            if hasattr(self.controller, "get_loot_stats"):
+                loot_stats = self.controller.get_loot_stats()
+                self.lbl_stat_attacks.configure(text=str(loot_stats.get("attacks_completed", 0)))
+                self.lbl_stat_skips.configure(text=str(loot_stats.get("skips", 0)))
+            elif hasattr(self.controller, "state_machine") and self.controller.state_machine:
                 sm = self.controller.state_machine
                 self.lbl_stat_attacks.configure(text=str(sm.attacks_completed))
                 self.lbl_stat_skips.configure(text=str(sm.consecutive_skips))
@@ -2594,6 +3021,20 @@ class DashboardApp(ctk.CTk):
             self.lbl_loot_de_total.configure(text=f"{de_tot:,}")
             self.lbl_loot_de_last.configure(text=f"Last: +{de_last:,}")
 
+            # Update Attack History tab cards & table
+            if hasattr(self, "lbl_hist_gold"):
+                self.lbl_hist_gold.configure(text=f"{g_tot:,}")
+                self.lbl_hist_elixir.configure(text=f"{e_tot:,}")
+                self.lbl_hist_de.configure(text=f"{de_tot:,}")
+                self.lbl_hist_attacks.configure(text=str(loot_stats.get("attacks_completed", 0)))
+
+            if hasattr(self, "hist_scroll_rows") and hasattr(self.controller, "attack_history_records"):
+                records = self.controller.attack_history_records
+                while self.rendered_history_count < len(records):
+                    rec = records[self.rendered_history_count]
+                    self._render_history_table_row(self.rendered_history_count + 1, rec)
+                    self.rendered_history_count += 1
+
         self.after(400, self._poll_ui_telemetry)
 
     def _fmt_k(self, amt: int) -> str:
@@ -2628,22 +3069,37 @@ class DashboardApp(ctk.CTk):
         except (ValueError, AttributeError):
             pass
 
+        de_as_gate = self.chk_de_gate_var.get() if hasattr(self, "chk_de_gate_var") else True
+        self.config.target.dark_elixir_as_gate = de_as_gate
+
         mode_val = "AND" if "AND" in self.match_mode_var.get() else "OR"
         self.config.target.match_mode = mode_val
 
-        parts = []
+        primary_parts = []
         if self.config.target.watch_gold:
-            parts.append(f"Gold >= {self._fmt_k(self.config.target.min_gold)}")
+            primary_parts.append(f"Gold >= {self._fmt_k(self.config.target.min_gold)}")
         if self.config.target.watch_elixir:
-            parts.append(f"Elixir >= {self._fmt_k(self.config.target.min_elixir)}")
-        if self.config.target.watch_dark_elixir:
-            parts.append(f"DE >= {self._fmt_k(self.config.target.min_dark_elixir)}")
+            primary_parts.append(f"Elixir >= {self._fmt_k(self.config.target.min_elixir)}")
         if self.config.target.watch_combined:
-            parts.append(f"Combined(G+E) >= {self._fmt_k(self.config.target.min_combined)}")
+            primary_parts.append(f"Combined(G+E) >= {self._fmt_k(self.config.target.min_combined)}")
 
-        if parts:
-            joiner = f" {mode_val} "
-            summary = f"Filter: {joiner.join(parts)}"
+        de_part = f"DE >= {self._fmt_k(self.config.target.min_dark_elixir)}" if self.config.target.watch_dark_elixir else None
+
+        if primary_parts or de_part:
+            if mode_val == "AND":
+                all_p = list(primary_parts)
+                if de_part:
+                    all_p.append(de_part)
+                summary = f"Filter: {' AND '.join(all_p)}"
+            else:  # "OR"
+                if de_as_gate and de_part and primary_parts:
+                    summary = f"Filter: ({' OR '.join(primary_parts)}) AND {de_part}"
+                else:
+                    all_p = list(primary_parts)
+                    if de_part:
+                        all_p.append(de_part)
+                    warn = " ⚠️ (DE alone attacks base!)" if (de_part and primary_parts) else ""
+                    summary = f"Filter: {' OR '.join(all_p)}{warn}"
         else:
             summary = "Filter: (All bases accepted - no criteria selected)"
 

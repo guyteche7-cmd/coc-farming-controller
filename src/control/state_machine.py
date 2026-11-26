@@ -8,6 +8,7 @@ and comprehensive step-by-step decision audit logging.
 from __future__ import annotations
 import os
 import time
+from datetime import datetime
 import logging
 import cv2
 from typing import Optional, Callable
@@ -53,7 +54,8 @@ class StateMachine:
         calibrator=None,
         state_change_callback: Optional[Callable[[UIState, GameState], None]] = None,
         on_verification_prompt: Optional[Callable[[dict], None]] = None,
-        config_manager: Optional[Any] = None
+        config_manager: Optional[Any] = None,
+        on_attack_completed: Optional[Callable[[dict], None]] = None
     ):
         self.config = config
         self.state_detector = state_detector
@@ -72,6 +74,7 @@ class StateMachine:
         self.state_change_callback = state_change_callback
         self.on_verification_prompt = on_verification_prompt
         self.config_manager = config_manager
+        self.on_attack_completed = on_attack_completed
 
         # Deployment verification tracking
         self.verify_first_attack = getattr(self.config.deployment, "verify_first_attack", True)
@@ -1333,9 +1336,15 @@ class StateMachine:
             "target_elixir": actual_elixir,
             "target_dark_elixir": actual_dark_elixir,
             "duration_seconds": duration,
-            "exit_reason": f"Finished with outcome {outcome}"
+            "exit_reason": f"Finished with outcome {outcome}",
+            "timestamp": datetime.now().strftime("%H:%M:%S")
         }
         self.db.record_attack(attack_record)
+        if hasattr(self, "on_attack_completed") and self.on_attack_completed:
+            try:
+                self.on_attack_completed(attack_record)
+            except Exception as e:
+                logger.warning(f"Error calling on_attack_completed: {e}")
 
         px, py = (0, 0)
         if self.calibrator and hasattr(self.calibrator, "normalized_to_pixel"):

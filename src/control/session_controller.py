@@ -71,6 +71,14 @@ class SessionController:
             "last_dark_elixir": 0,
         }
 
+        # Lifetime cumulative statistics (persists across Start/Stop, only resets when program closes)
+        self.lifetime_gold_looted: int = 0
+        self.lifetime_elixir_looted: int = 0
+        self.lifetime_dark_elixir_looted: int = 0
+        self.lifetime_attacks_completed: int = 0
+        self.lifetime_skips: int = 0
+        self.attack_history_records: list = []
+
         # Viewport & Input
         self.calibrator = ViewportCalibrator(
             target_resolution=self.config.window.target_resolution,
@@ -341,6 +349,7 @@ class SessionController:
             state_change_callback=self.state_callback,
             on_verification_prompt=self.verification_callback,
             config_manager=self.config_manager,
+            on_attack_completed=self._on_attack_completed,
         )
         # Attach wall_evaluator separately (used in home state handler)
         self.state_machine.wall_evaluator = wall_evaluator
@@ -413,18 +422,40 @@ class SessionController:
         else:
             logger.info(f"Worker thread for older session {worker_session_id} exited gracefully without affecting active session {self.session_id}.")
 
+    def _on_attack_completed(self, attack_record: dict) -> None:
+        """Callback invoked whenever an attack finishes on the result screen."""
+        g = attack_record.get("target_gold", 0)
+        e = attack_record.get("target_elixir", 0)
+        de = attack_record.get("target_dark_elixir", 0)
+        self.lifetime_gold_looted += g
+        self.lifetime_elixir_looted += e
+        self.lifetime_dark_elixir_looted += de
+        self.lifetime_attacks_completed += 1
+        self.last_loot_stats["last_gold"] = g
+        self.last_loot_stats["last_elixir"] = e
+        self.last_loot_stats["last_dark_elixir"] = de
+        self.last_loot_stats["total_gold"] = self.lifetime_gold_looted
+        self.last_loot_stats["total_elixir"] = self.lifetime_elixir_looted
+        self.last_loot_stats["total_dark_elixir"] = self.lifetime_dark_elixir_looted
+        self.attack_history_records.append(attack_record)
+        logger.info(
+            f"[LIFETIME LOOT] Attack #{self.lifetime_attacks_completed}: +{g:,} Gold, +{e:,} Elixir, +{de:,} DE. "
+            f"Run Totals: {self.lifetime_gold_looted:,} Gold, {self.lifetime_elixir_looted:,} Elixir, {self.lifetime_dark_elixir_looted:,} DE"
+        )
+
     def get_loot_stats(self) -> dict:
-        """Returns the latest accumulated session loot and last attack loot."""
-        if hasattr(self, "state_machine") and self.state_machine:
-            self.last_loot_stats = {
-                "total_gold": getattr(self.state_machine, "total_gold_looted", 0),
-                "total_elixir": getattr(self.state_machine, "total_elixir_looted", 0),
-                "total_dark_elixir": getattr(self.state_machine, "total_dark_elixir_looted", 0),
-                "last_gold": getattr(self.state_machine, "last_attack_gold", 0),
-                "last_elixir": getattr(self.state_machine, "last_attack_elixir", 0),
-                "last_dark_elixir": getattr(self.state_machine, "last_attack_dark_elixir", 0),
-            }
-        return self.last_loot_stats
+        """Returns the lifetime accumulated session loot (persisting across start/stop) and last attack loot."""
+        sm_skips = getattr(self.state_machine, "consecutive_skips", 0) if self.state_machine else 0
+        return {
+            "total_gold": self.lifetime_gold_looted,
+            "total_elixir": self.lifetime_elixir_looted,
+            "total_dark_elixir": self.lifetime_dark_elixir_looted,
+            "last_gold": self.last_loot_stats.get("last_gold", 0),
+            "last_elixir": self.last_loot_stats.get("last_elixir", 0),
+            "last_dark_elixir": self.last_loot_stats.get("last_dark_elixir", 0),
+            "attacks_completed": self.lifetime_attacks_completed,
+            "skips": self.lifetime_skips + sm_skips,
+        }
 
     def toggle_pause(self) -> None:
         """Toggles pause/resume state with explicit voice, sound, and log feedback."""
@@ -491,6 +522,7 @@ class SessionController:
         self.is_running = False
         self.is_paused = False
         if hasattr(self, "state_machine") and self.state_machine:
+            self.lifetime_skips += getattr(self.state_machine, "consecutive_skips", 0)
             self.state_machine.is_stopped = True
         self.notifier.announce("Farming session stopped", chime="error", toast_title="Farming Stopped")
         if self._thread and self._thread.is_alive() and threading.current_thread() != self._thread:

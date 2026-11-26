@@ -66,37 +66,65 @@ class TargetEvaluator:
                 )
 
         # 1. Evaluate user-selected watch parameters (Checkboxes)
-        active_conditions = []
-        conditions_met = []
+        watch_g = getattr(self.config, "watch_gold", False)
+        watch_e = getattr(self.config, "watch_elixir", False)
+        watch_de = getattr(self.config, "watch_dark_elixir", False)
+        watch_comb = getattr(self.config, "watch_combined", False)
 
-        if getattr(self.config, "watch_gold", False):
-            min_g = getattr(self.config, "min_gold", 500000)
-            active_conditions.append(f"Gold >= {min_g:,}")
-            conditions_met.append(gold >= min_g)
+        min_g = getattr(self.config, "min_gold", 500000)
+        min_e = getattr(self.config, "min_elixir", 500000)
+        min_de = getattr(self.config, "min_dark_elixir", 5000)
+        min_c = getattr(self.config, "min_combined", 1000000)
 
-        if getattr(self.config, "watch_elixir", False):
-            min_e = getattr(self.config, "min_elixir", 500000)
-            active_conditions.append(f"Elixir >= {min_e:,}")
-            conditions_met.append(elixir >= min_e)
+        primary_conditions = []
+        primary_met = []
 
-        if getattr(self.config, "watch_dark_elixir", False):
-            min_de = getattr(self.config, "min_dark_elixir", 5000)
-            active_conditions.append(f"DE >= {min_de:,}")
-            conditions_met.append(dark_elixir >= min_de)
+        if watch_g:
+            primary_conditions.append(f"Gold >= {min_g:,}")
+            primary_met.append(gold >= min_g)
 
-        if getattr(self.config, "watch_combined", False):
-            min_c = getattr(self.config, "min_combined", 1000000)
-            active_conditions.append(f"Combined >= {min_c:,}")
-            conditions_met.append(combined >= min_c)
+        if watch_e:
+            primary_conditions.append(f"Elixir >= {min_e:,}")
+            primary_met.append(elixir >= min_e)
 
-        if active_conditions:
+        if watch_comb:
+            primary_conditions.append(f"Combined >= {min_c:,}")
+            primary_met.append(combined >= min_c)
+
+        de_condition = None
+        de_met = True
+        if watch_de:
+            de_condition = f"DE >= {min_de:,}"
+            de_met = (dark_elixir >= min_de)
+
+        if primary_conditions or de_condition:
             mode = getattr(self.config, "match_mode", "OR").upper()
-            if mode == "AND":
-                accepted = all(conditions_met)
-            else:  # "OR"
-                accepted = any(conditions_met)
+            de_as_gate = getattr(self.config, "dark_elixir_as_gate", True)
 
-            expr_desc = f" {mode} ".join(active_conditions)
+            if mode == "AND":
+                all_conds = list(primary_conditions)
+                all_met = list(primary_met)
+                if de_condition:
+                    all_conds.append(de_condition)
+                    all_met.append(de_met)
+                accepted = all(all_met)
+                expr_desc = " AND ".join(all_conds)
+            else:  # "OR"
+                # If dark_elixir_as_gate is True, Dark Elixir acts as an AND prerequisite
+                # rather than allowing 10k DE to accept a base with zero gold/elixir.
+                if de_as_gate and de_condition and primary_conditions:
+                    primary_accepted = any(primary_met)
+                    accepted = primary_accepted and de_met
+                    expr_desc = f"({' OR '.join(primary_conditions)}) AND {de_condition}"
+                else:
+                    all_conds = list(primary_conditions)
+                    all_met = list(primary_met)
+                    if de_condition:
+                        all_conds.append(de_condition)
+                        all_met.append(de_met)
+                    accepted = any(all_met)
+                    expr_desc = " OR ".join(all_conds)
+
             reason = f"Loot accepted ({expr_desc})" if accepted else f"Loot below target ({expr_desc})"
             return TargetEvaluationResult(
                 accepted=accepted,

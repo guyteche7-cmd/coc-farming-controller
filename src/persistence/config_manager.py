@@ -35,6 +35,7 @@ class TargetConfig(BaseModel):
     watch_combined: bool = True
     min_combined: int = 1000000
     dark_elixir: DarkElixirConfig = Field(default_factory=DarkElixirConfig)
+    dark_elixir_as_gate: bool = True  # If True in OR mode, DE is checked as (Gold OR Elixir) AND DE
     max_consecutive_skips: int = 500
     skip_delay_seconds: float = 1.2
     min_ocr_confidence: float = 0.70
@@ -99,6 +100,8 @@ class DeploymentConfig(BaseModel):
     lock_ribbon_mode: bool = True  # Locks slot coordinates to prevent scenery interference
     verify_first_attack: bool = True  # Whether to prompt verification on first attack / army change
     deployment_verified: bool = True  # Verification confirmed status
+    max_troop_capacity: int = 352  # Maximum army camp housing space (TH17 default: 352)
+    max_spell_capacity: int = 11  # Maximum spell storage housing space (TH17 default: 11)
     army: ArmyConfig = Field(default_factory=ArmyConfig)
     hero_count: int = 2  # -1 for Auto-Detect, or 0, 1, 2, 3, 4
     hero_ability_delay_seconds: float = 6.0  # Reduced to 6s

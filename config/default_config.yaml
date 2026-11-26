@@ -13,16 +13,17 @@ target:
   expression: gold >= 1000000 OR gold + elixir >= 1500000
   match_mode: OR
   watch_gold: true
-  min_gold: 600000
+  min_gold: 1000000
   watch_elixir: true
-  min_elixir: 600000
-  watch_dark_elixir: false
-  min_dark_elixir: 12000
+  min_elixir: 1000000
+  watch_dark_elixir: true
+  min_dark_elixir: 10000
   watch_combined: false
   min_combined: 1500000
   dark_elixir:
     enabled: false
     minimum: 10000
+  dark_elixir_as_gate: true
   max_consecutive_skips: 500
   skip_delay_seconds: 0.5
   min_ocr_confidence: 0.7
@@ -35,10 +36,17 @@ deployment:
   lock_ribbon_mode: true
   verify_first_attack: true
   deployment_verified: true
+  max_troop_capacity: 352
+  max_spell_capacity: 11
   army:
     troops:
     - name: valkyrie
-      expected_quantity: 44
+      expected_quantity: 40
+      priority: 2
+      enabled: true
+      pattern: line_distribute
+    - name: super_wall_breaker
+      expected_quantity: 4
       priority: 1
       enabled: true
       pattern: line_distribute
@@ -53,13 +61,13 @@ deployment:
       enabled: true
     heroes:
     - name: barbarian_king
-      enabled: true
+      enabled: false
     - name: archer_queen
       enabled: true
     - name: grand_warden
       enabled: true
     - name: royal_champion
-      enabled: false
+      enabled: true
     - name: minion_prince
       enabled: false
     - name: dragon_duke
@@ -73,7 +81,7 @@ exit:
   combat_timer_seconds: 150
   max_combat_timer_seconds: 150
   damage_threshold_percent: 100.0
-  loot_collected_percent: 85.0
+  loot_collected_percent: 100.0
   surrender_threshold_seconds: 60
   poll_interval_seconds: 1.0
 walls:
@@ -86,8 +94,8 @@ storage_limit:
   enabled: true
   stop_when_full: true
   match_mode: AND
-  max_gold: 30000000
-  max_elixir: 30000000
+  max_gold: 31000000
+  max_elixir: 31000000
   max_dark_elixir: 450000
   check_gold: true
   check_elixir: true

@@ -111,6 +111,43 @@ class TestRulesAndState(unittest.TestCase):
         # Still not fully deployed because heroes/spells remain
         self.assertFalse(ledger.is_fully_deployed)
 
+    def test_target_evaluator_dark_elixir_gate(self):
+        # User scenario: In OR mode with Min Gold=1M, Min Elixir=1M, Min DE=10k
+        # With dark_elixir_as_gate=True: (Gold >= 1M OR Elixir >= 1M) AND DE >= 10k
+        cfg = TargetConfig(
+            match_mode="OR",
+            watch_gold=True,
+            min_gold=1000000,
+            watch_elixir=True,
+            min_elixir=1000000,
+            watch_dark_elixir=True,
+            min_dark_elixir=10000,
+            watch_combined=False,
+            dark_elixir_as_gate=True,
+            min_ocr_confidence=0.70
+        )
+        evaluator = TargetEvaluator(cfg)
+
+        # Case 1: Low gold (155k), low elixir (242k), but high DE (11.7k)
+        # MUST BE REJECTED! Because gold/elixir conditions failed!
+        cand_low = CandidateInfo(gold=155000, elixir=242000, dark_elixir=11788, confidence=0.85)
+        res_low = evaluator.evaluate(cand_low)
+        self.assertFalse(res_low.accepted)
+        self.assertIn("Loot below target", res_low.reason)
+
+        # Case 2: High gold (1.2M), low elixir (242k), high DE (11.7k)
+        # MUST BE ACCEPTED!
+        cand_high = CandidateInfo(gold=1200000, elixir=242000, dark_elixir=11788, confidence=0.85)
+        res_high = evaluator.evaluate(cand_high)
+        self.assertTrue(res_high.accepted)
+        self.assertIn("Loot accepted", res_high.reason)
+
+        # Case 3: High gold (1.2M), low elixir (242k), but low DE (5k)
+        # MUST BE REJECTED! Because DE gate failed!
+        cand_low_de = CandidateInfo(gold=1200000, elixir=242000, dark_elixir=5000, confidence=0.85)
+        res_low_de = evaluator.evaluate(cand_low_de)
+        self.assertFalse(res_low_de.accepted)
+
 
 if __name__ == "__main__":
     unittest.main()
